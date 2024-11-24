@@ -1,0 +1,19 @@
+body {
+    width: 400px;
+    height: 300px;
+    margin: 0 auto;
+    overflow-y: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    border: 1px solid #091133;
+    padding: 8px;
+}
+th {
+    background-color: #f2f2f2;
+}
+.online { color: green; }
+.offline { color: red; }

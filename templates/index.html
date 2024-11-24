@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Status</title>
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <h1>Service Status</h1>
+    <table id="services-table">
+        <thead>
+            <tr>
+                <th>Service URL</th>
+                <th>Status</th>
+                <th>Response Time (ms)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for service in services %}
+            <tr>
+                <td>{{ service.service_url }}</td>
+                <td class="{{ 'online' if service.status == 'online' else 'offline' }}">{{ service.status }}</td>
+                <td>{{ service.response_time|float|round(2) }} ms</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>SLA and Average Response Time</h2>
+    <div>
+        <p>Total Responses: {{ total_responses }}</p>
+        <p>Online Count: {{ online_count }}</p>
+        <p>SLA: {{ sla }}</p>
+        <p>Average Response Time: {{ average_response_time }}</p>
+    </div>
+
+    <script>
+        function updateTable() {
+            fetch('/check_services')
+                .then(response => response.json())
+                .then(data => {
+                    const table = document.getElementById('services-table');
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th>Service URL</th>
+                                <th>Status</th>
+                                <th>Response Time (ms)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.map(service => `
+                                <tr class="${service.status === 'online' ? 'online' : 'offline'}">
+                                    <td>${service.service_url}</td>
+                                    <td>${service.status}</td>
+                                    <td>${service.response_time}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    `;
+                });
+        }
+
+        setInterval(updateTable, 300000); // Update every 5 minutes
+    </script>
+</body>
+</html>
