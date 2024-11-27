@@ -11,6 +11,7 @@
     <table id="services-table">
         <thead>
             <tr>
+                <th>Service name</th>
                 <th>Service URL</th>
                 <th>Status</th>
                 <th>Response Time (ms)</th>
@@ -19,6 +20,7 @@
         <tbody>
             {% for service in services %}
             <tr>
+                <td>{{ service.service_name }}</td>
                 <td>{{ service.service_url }}</td>
                 <td class="{{ 'online' if service.status == 'online' else 'offline' }}">{{ service.status }}</td>
                 <td>{{ service.response_time|float|round(2) }} ms</td>
@@ -35,34 +37,34 @@
         <p>Average Response Time: {{ average_response_time }}</p>
     </div>
 
-    <script>
-        function updateTable() {
-            fetch('/check_services')
-                .then(response => response.json())
-                .then(data => {
-                    const table = document.getElementById('services-table');
-                    table.innerHTML = `
-                        <thead>
-                            <tr>
-                                <th>Service URL</th>
-                                <th>Status</th>
-                                <th>Response Time (ms)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${data.map(service => `
-                                <tr class="${service.status === 'online' ? 'online' : 'offline'}">
-                                    <td>${service.service_url}</td>
-                                    <td>${service.status}</td>
-                                    <td>${service.response_time}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    `;
-                });
-        }
-
-        setInterval(updateTable, 300000); // Update every 5 minutes
-    </script>
+{#    <script>#}
+{#        function updateTable() {#}
+{#            fetch('/check_services')#}
+{#                .then(response => response.json())#}
+{#                .then(data => {#}
+{#                    const table = document.getElementById('services-table');#}
+{#                    table.innerHTML = `#}
+{#                        <thead>#}
+{#                            <tr>#}
+{#                                <th>Service URL</th>#}
+{#                                <th>Status</th>#}
+{#                                <th>Response Time (ms)</th>#}
+{#                            </tr>#}
+{#                        </thead>#}
+{#                        <tbody>#}
+{#                            ${data.map(service => `#}
+{#                                <tr class="${service.status === 'online' ? 'online' : 'offline'}">#}
+{#                                    <td>${service.service_url}</td>#}
+{#                                    <td>${service.status}</td>#}
+{#                                    <td>${service.response_time}</td>#}
+{#                                </tr>#}
+{#                            `).join('')}#}
+{#                        </tbody>#}
+{#                    `;#}
+{#                });#}
+{#        }#}
+{##}
+{#        setInterval(updateTable, 300000); // Update every 5 minutes#}
+{#    </script>#}
 </body>
 </html>
