@@ -13,6 +13,7 @@ class ServiceStatus(db.Model):
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
     last_status_change = db.Column(db.DateTime)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
 
     __table_args__ = (
         db.UniqueConstraint('service_url', 'timestamp', name='uix_service_url_timestamp'),
@@ -29,6 +30,16 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+class Service(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    service_name = db.Column(db.String(50), nullable=False, unique=True)
+    service_url = db.Column(db.String(255), nullable=False, unique=True)
+    description = db.Column(db.Text, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def __repr__(self):
+        return f'<Service {self.service_name}>'
 
 def init_db(app):
     db.init_app(app)

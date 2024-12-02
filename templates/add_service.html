@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Service</title>
+</head>
+<body>
+    <h1>Add Service</h1>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.service_name.label }}<br>
+            {{ form.service_name(size=32) }}
+        </div>
+        <div class="form-group">
+            {{ form.service_url.label }}<br>
+            {{ form.service_url(size=32) }}
+        </div>
+        <div class="form-group">
+            {{ form.description.label }}<br>
+            {{ form.description(rows=4, cols=50) }}
+        </div>
+        <p>{{ form.submit() }}</p>
+    </form>
+</body>
+</html>

@@ -1,12 +1,12 @@
-from flask import Flask, jsonify, render_template, redirect, url_for, request, flash
+from flask import Flask, jsonify, render_template, redirect, url_for, request, flash, abort
 from flask_login import login_required, logout_user
 import requests
 import socket
 import time
 import smtplib
 from email.mime.text import MIMEText
-from database import init_db, ServiceStatus, db, User
-from forms import RegistrationForm, LoginForm
+from database import init_db, ServiceStatus, db, User, Service
+from forms import RegistrationForm, LoginForm, AddServiceForm
 from flask_login import login_user, current_user, LoginManager
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -15,10 +15,10 @@ app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///services.db'
 init_db(app)
 
-SERVICES = [
-    ['example', 'https://example.com'],
-    ['127.0.0.1','127.0.0.1:37']
-] # Your services name and services here
+# SERVICES = [
+#     ['example', 'https://example.com'],
+#     ['127.0.0.1','127.0.0.1:37']
+# ] # Your services name and services here
 
 
 login_manager = LoginManager()
@@ -41,9 +41,12 @@ def check_port(host, port):
     finally:
         sock.close()
 
+@login_required
 def check_services():
     results = []
-    for service_url in SERVICES:
+    services = Service.query.filter_by(user_id=current_user.id).with_entities(Service.service_name,
+                                                                                   Service.service_url, Service.id).all()
+    for service_url in services:
         if '://' not in service_url[1] and ':' in service_url[1]:
             start_time = time.time()
             host, port = service_url[1].split(':')
@@ -54,6 +57,7 @@ def check_services():
         else:
             try:
                 start_time = time.time()
+                response = requests.get(service_url[1], timeout=5)
                 end_time = time.time()
                 response_time = (end_time - start_time) * 1000
                 status = 'online'
@@ -66,7 +70,9 @@ def check_services():
             service_name=service_url[0],
             service_url=service_url[1],
             status=status,
-            response_time=response_time
+            response_time=response_time,
+            user_id=current_user.id,
+            service_id=service_url[2]
         )
         db.session.add(service_status)
         results.append({
@@ -79,6 +85,7 @@ def check_services():
 
     return results
 
+@login_required
 def send_email(subject, message):
     msg = MIMEText(message)
     msg['Subject'] = subject
@@ -94,10 +101,13 @@ def get_last_status(service_url):
     last_status = ServiceStatus.query.filter_by(service_url=service_url).order_by(ServiceStatus.timestamp.desc()).first()
     return last_status.status if last_status else None
 
+@login_required
 def monitor_services():
     with app.app_context():
+        services = Service.query.filter_by(user_id=current_user.id).with_entities(Service.service_name,
+                                                                                  Service.service_url).all()
         current_statuses = check_services()
-        for service_url, current_status in zip(SERVICES, current_statuses):
+        for service_url, current_status in zip(services, current_statuses):
             last_status = get_last_status(service_url[1])
             if last_status != current_status['status']:
                 if current_status['status'] == 'offline':
@@ -151,15 +161,54 @@ def index():
     services_sla = ServiceStatus.query.all()
     total_responses = len(services_sla)
     online_count = sum(1 for s in services_sla if s.status == 'online')
+    services_user = Service.query.filter_by(user_id=current_user.id).with_entities(Service.id,
+                                                                                   Service.service_name,
+                                                                                   Service.service_url,
+                                                                                   Service.description).all()
 
     if total_responses > 0:
-        sla = round((online_count / total_responses) * 100, 2)
+        sla_result = round((online_count / total_responses) * 100, 2)
     else:
-        sla = 0
+        sla_result = 0
 
     average_response_time = sum(s.response_time for s in services_sla if s.response_time is not None) / len([s for s in services_sla if s.response_time is not None]) if any(s.response_time is not None for s in services_sla) else None
 
-    return render_template('index.html', services=services, total_responses=total_responses, online_count=online_count, sla=f"{sla:.2f}%", average_response_time=f"{average_response_time:.2f} ms" if average_response_time is not None else None)
+    return render_template('index.html', services_user= services_user, services=services, total_responses=total_responses, online_count=online_count, sla=f"{sla_result:.2f}%", average_response_time=f"{average_response_time:.2f} ms" if average_response_time is not None else None)
+
+@app.route('/service_management', methods=['GET'])
+@login_required
+def service_management():
+    services_user = Service.query.filter_by(user_id=current_user.id).with_entities(Service.id,
+                                                                                   Service.service_name,
+                                                                                   Service.service_url,
+                                                                                   Service.description).all()
+    return render_template('service_management.html', services_user=services_user)
+
+
+@app.route('/add_service', methods=['GET', 'POST'])
+@login_required
+def add_service():
+    form = AddServiceForm()
+    if form.validate_on_submit():
+        service = Service(service_name=form.service_name.data,  service_url=form.service_url.data,
+                          description=form.description.data, user_id=current_user.id)
+        db.session.add(service)
+        db.session.commit()
+        flash('Your service has been added!', 'success')
+        return redirect(url_for('index'))
+    return render_template('add_service.html', title='Add Service', form=form)
+
+@app.route('/delete_service/<int:service_id>', methods=['POST'])
+@login_required
+def delete_service(service_id):
+    service = Service.query.get_or_404(service_id)
+    if service.user_id != current_user.id:
+        abort(403)  # Forbidden access
+    ServiceStatus.query.filter_by(service_id=service_id).delete(synchronize_session=False)
+    db.session.delete(service)
+    db.session.commit()
+    flash('Your service has been deleted!', 'success')
+    return redirect(url_for('index'))
 
 @app.route('/check_services', methods=['GET'])
 @login_required
@@ -179,9 +228,9 @@ def sla():
     online_count = sum(1 for s in services if s.status == 'online')
 
     if total_responses > 0:
-        sla = (online_count / total_responses) * 100
+        sla_result = (online_count / total_responses) * 100
     else:
-        sla = 0
+        sla_result = 0
 
     average_response_time = sum(s.response_time for s in services if s.response_time is not None) / len(
         [s for s in services if s.response_time is not None]) if any(
@@ -190,7 +239,7 @@ def sla():
     return jsonify({
         "total_responses": total_responses,
         "online_count": online_count,
-        "sla": f"{sla:.2f}%",
+        "sla": f"{sla_result:.2f}%",
         "average_response_time": f"{average_response_time:.2f} ms" if average_response_time is not None else None
     })
 

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <h1>Welcome, {{ current_user.username }}!</h1>
+</head>
+<body>
+    <a href="{{ url_for('add_service') }}">Add Service</a>
+    <ul>
+        {% for service in services_user %}
+            <li>{{ service.service_name }} - {{ service.description }}
+                <form action="{{ url_for('delete_service', service_id=service.id) }}" method="POST" style="display:inline;">
+                    <button type="submit">Delete</button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

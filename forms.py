@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from database import User
-from wtforms import StringField, PasswordField, SubmitField, BooleanField
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 
 class RegistrationForm(FlaskForm):
@@ -25,3 +25,9 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     remember_me = BooleanField('Remember Me')
     submit = SubmitField('Login')
+
+class AddServiceForm(FlaskForm):
+    service_name = StringField('Service name', validators=[DataRequired()])
+    service_url = StringField('Service url/ip:port', validators=[DataRequired()])
+    description = TextAreaField('Description')
+    submit = SubmitField('Add Service')
