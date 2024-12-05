@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, render_template, redirect, url_for, request, flash, abort
 from flask_login import login_required, logout_user
+from flask_bootstrap import Bootstrap5
 import requests
 import socket
 import time
@@ -14,12 +15,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///services.db'
 init_db(app)
-
-# SERVICES = [
-#     ['example', 'https://example.com'],
-#     ['127.0.0.1','127.0.0.1:37']
-# ] # Your services name and services here
-
+bootstrap = Bootstrap5(app)
+app.config['BOOTSTRAP_SERVE_LOCAL'] = True
 
 login_manager = LoginManager()
 login_manager.init_app(app)

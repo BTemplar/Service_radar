@@ -1,18 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+{% extends "base.html" %}
+
+{% block title %}Service Management|Service Status{% endblock %}
+{% block content %}
+<div class="container mt-3">
     <h1>Welcome, {{ current_user.username }}!</h1>
-</head>
-<body>
-    <a href="{{ url_for('add_service') }}">Add Service</a>
-    <ul>
+
+    <div class="text-right mb-3">
+        <a href="{{ url_for('add_service') }}" class="btn btn-primary">Add Service</a>
+    </div>
+
+    <ul class="list-group">
         {% for service in services_user %}
-            <li>{{ service.service_name }} - {{ service.description }}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ service.service_name }} - {{ service.description }}
                 <form action="{{ url_for('delete_service', service_id=service.id) }}" method="POST" style="display:inline;">
-                    <button type="submit">Delete</button>
+                    <button type="submit" class="btn btn-danger">Delete</button>
                 </form>
             </li>
         {% endfor %}
     </ul>
-</body>
-</html>
+</div>
+{% endblock %}

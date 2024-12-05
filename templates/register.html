@@ -3,37 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <title>Register</title>
+    <!-- Bootstrap CSS -->
+    {{ bootstrap.load_css() }}
 </head>
 <body>
+
+<div class="container mt-3">
     <h1>Register</h1>
+
     {% with messages = get_flashed_messages() %}
         {% if messages %}
-            <ul>
+            <div class="alert alert-danger" role="alert">
                 {% for message in messages %}
-                    <li>{{ message }}</li>
+                    {{ message }}<br>
                 {% endfor %}
-            </ul>
+            </div>
         {% endif %}
     {% endwith %}
+
     <form method="POST" action="{{ url_for('register') }}">
         {{ form.hidden_tag() }}
         <div class="form-group">
             {{ form.username.label }}<br>
-            {{ form.username(size=32) }}
+            {{ form.username(class="form-control", size=32) }}
         </div>
         <div class="form-group">
             {{ form.email.label }}<br>
-            {{ form.email(size=32) }}
+            {{ form.email(class="form-control", size=32) }}
         </div>
         <div class="form-group">
             {{ form.password.label }}<br>
-            {{ form.password(size=32) }}
+            {{ form.password(class="form-control", size=32) }}
         </div>
         <div class="form-group">
             {{ form.confirm_password.label }}<br>
-            {{ form.confirm_password(size=32) }}
+            {{ form.confirm_password(class="form-control", size=32) }}
         </div>
-        <p>{{ form.submit() }}</p>
+        <button type="submit" class="btn btn-primary">Register</button>
     </form>
+</div>
+{{ bootstrap.load_js() }}
 </body>
 </html>

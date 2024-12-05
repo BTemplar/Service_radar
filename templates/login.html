@@ -3,32 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
+
+<div class="container mt-3">
     <h1>Login</h1>
+
     {% with messages = get_flashed_messages() %}
         {% if messages %}
-            <ul>
+            <div class="alert alert-danger" role="alert">
                 {% for message in messages %}
-                    <li>{{ message }}</li>
+                    {{ message }}<br>
                 {% endfor %}
-            </ul>
+            </div>
         {% endif %}
     {% endwith %}
+
     <form method="POST" action="{{ url_for('login') }}">
         {{ form.hidden_tag() }}
         <div class="form-group">
             {{ form.username.label }}<br>
-            {{ form.username(size=32) }}
+            {{ form.username(class="form-control", size=32) }}
         </div>
         <div class="form-group">
             {{ form.password.label }}<br>
-            {{ form.password(size=32) }}
+            {{ form.password(class="form-control", size=32) }}
         </div>
-        <div class="form-group">
-            {{ form.remember_me() }} {{ form.remember_me.label }}
+        <div class="form-group form-check">
+            {{ form.remember_me(class="form-check-input") }}
+            {{ form.remember_me.label(class="form-check-label") }}
         </div>
-        <p>{{ form.submit() }}</p>
+        <button type="submit" class="btn btn-primary">Login</button>
     </form>
+</div>
+
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<!-- Popper JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
 </body>
 </html>

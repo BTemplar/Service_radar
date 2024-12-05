@@ -1,70 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Status</title>
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
-</head>
-<body>
-    <h1>Service Status</h1>
-    <table id="services-table">
-        <thead>
-            <tr>
-                <th>Service name</th>
-                <th>Service URL</th>
-                <th>Status</th>
-                <th>Response Time (ms)</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for service in services %}
-            <tr>
-                <td>{{ service.service_name }}</td>
-                <td>{{ service.service_url }}</td>
-                <td class="{{ 'online' if service.status == 'online' else 'offline' }}">{{ service.status }}</td>
-                <td>{{ service.response_time|float|round(2) }} ms</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+{% extends "base.html" %}
+{% block title %}Home|Service Status{% endblock %}
+{% block content %}
+    <div class="container mt-3">
+        <h1>Service Status</h1>
 
-    <h2>SLA and Average Response Time</h2>
-    <div>
-        <p>Total Responses: {{ total_responses }}</p>
-        <p>Online Count: {{ online_count }}</p>
-        <p>SLA: {{ sla }}</p>
-        <p>Average Response Time: {{ average_response_time }}</p>
+        <table id="services-table" class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Service name</th>
+                    <th>Service URL</th>
+                    <th>Status</th>
+                    <th>Response Time (ms)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service in services %}
+                <tr class="{{ 'table-success' if service.status == 'online' else 'table-danger' }}">
+                    <td>{{ service.service_name }}</td>
+                    <td>{{ service.service_url }}</td>
+                    <td>{{ service.status }}</td>
+                    <td>{{ service.response_time|float|round(2) }} ms</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2>SLA and Average Response Time</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <p>Total Responses: {{ total_responses }}</p>
+                <p>Online Count: {{ online_count }}</p>
+            </div>
+            <div class="col-md-6">
+                <p>SLA: {{ sla }}</p>
+                <p>Average Response Time: {{ average_response_time }}</p>
+            </div>
+        </div>
     </div>
-
-{#    <script>#}
-{#        function updateTable() {#}
-{#            fetch('/check_services')#}
-{#                .then(response => response.json())#}
-{#                .then(data => {#}
-{#                    const table = document.getElementById('services-table');#}
-{#                    table.innerHTML = `#}
-{#                        <thead>#}
-{#                            <tr>#}
-{#                                <th>Service URL</th>#}
-{#                                <th>Status</th>#}
-{#                                <th>Response Time (ms)</th>#}
-{#                            </tr>#}
-{#                        </thead>#}
-{#                        <tbody>#}
-{#                            ${data.map(service => `#}
-{#                                <tr class="${service.status === 'online' ? 'online' : 'offline'}">#}
-{#                                    <td>${service.service_url}</td>#}
-{#                                    <td>${service.status}</td>#}
-{#                                    <td>${service.response_time}</td>#}
-{#                                </tr>#}
-{#                            `).join('')}#}
-{#                        </tbody>#}
-{#                    `;#}
-{#                });#}
-{#        }#}
-{##}
-{#        setInterval(updateTable, 300000); // Update every 5 minutes#}
-{#    </script>#}
-</body>
-</html>
+{% endblock content %}
