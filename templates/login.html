@@ -2,41 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <title>Login|Service Status</title>
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .auth-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f8f9fa;
+        }
+        .card-body {
+        border-radius: 8px;
+        }
+    </style>
 </head>
 <body>
-
-<div class="container mt-3">
-    <h1>Login</h1>
-
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="alert alert-danger" role="alert">
-                {% for message in messages %}
-                    {{ message }}<br>
-                {% endfor %}
+<div class="auth-wrapper">
+    <div class="auth-content">
+        <div class="card">
+            <div class="row align-items-center text-center">
+                <div class="col-md-12">
+                    <div class="card-body bg-primary">
+                        <h1 class="text-center">Login</h1>
+                        {% with messages = get_flashed_messages() %}
+                            {% if messages %}
+                                <div class="alert alert-danger" role="alert">
+                                    {% for message in messages %}
+                                        {{ message }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endwith %}
+                        <form method="POST" action="{{ url_for('login') }}" class="align-items-center login-form">
+                            {{ form.hidden_tag() }}
+                            <div class="input-group mb-3">
+                                {{ form.username(type="username", class="form-control", placeholder="Username") }}
+                            </div>
+                            <div lass="input-group mb-4">
+                                {{ form.password(type="password", class="form-control", placeholder="Password") }}
+                            </div>
+                            <div class="form-group form-check">
+                                {{ form.remember_me(class="form-check-input", type="checkbox", value="", id="flexCheckChecked") }}
+                                {{ form.remember_me.label(class="form-check-label") }}
+                            </div>
+                            <button type="submit" class="btn btn-primary">Login</button>
+                        </form>
+                    </div>
+                </div>
             </div>
-        {% endif %}
-    {% endwith %}
-
-    <form method="POST" action="{{ url_for('login') }}">
-        {{ form.hidden_tag() }}
-        <div class="form-group">
-            {{ form.username.label }}<br>
-            {{ form.username(class="form-control", size=32) }}
         </div>
-        <div class="form-group">
-            {{ form.password.label }}<br>
-            {{ form.password(class="form-control", size=32) }}
-        </div>
-        <div class="form-group form-check">
-            {{ form.remember_me(class="form-check-input") }}
-            {{ form.remember_me.label(class="form-check-label") }}
-        </div>
-        <button type="submit" class="btn btn-primary">Login</button>
-    </form>
+    </div>
 </div>
 
 <!-- jQuery library -->
