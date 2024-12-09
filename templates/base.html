@@ -6,9 +6,40 @@
     <title>{% block title %}{% endblock %}</title>
     {{ bootstrap.load_css() }}
 </head>
+<style>
+    .auth-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #000000;
+        background-image: url('/static/images/service_radar.png');
+        background-size: auto;
+        background-position: center;
+    }
+    .card-body {
+        border-radius: 8px;
+        background-color: #1f5229;
+    }
+    .content {
+        margin-top: 55px; /* Adjust this value based on your navbar height */
+    }
+</style>
 <body>
-    {% include 'includes/navbar.html' %}
-    {% block content %}{% endblock %}
-    {{ bootstrap.load_js() }}
+    <div class="auth-wrapper  content">
+        <div class="auth-content">
+            <div class="card">
+                <div class="row align-items-center text-center">
+                    <div class="col-md-12">
+                        <div class="card-body">
+                            {% include 'includes/navbar.html' %}
+                            {% block content %}{% endblock %}
+                            {{ bootstrap.load_js() }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

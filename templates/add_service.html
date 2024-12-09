@@ -22,14 +22,40 @@
             {{ form.service_name(class="form-control", size=32) }}
         </div>
         <div class="form-group">
+            <label for="type">Type</label><br>
+            <select id="type" onchange="updateServiceUrl()">
+                <option value="http">HTTP</option>
+                <option value="https">HTTPS</option>
+                <option value="port">Port</option>
+            </select>
+        </div>
+        <div class="form-group">
             {{ form.service_url.label }}<br>
-            {{ form.service_url(class="form-control", size=32) }}
+            {{ form.service_url(class="form-control", size=32, id="service_url") }}
         </div>
         <div class="form-group">
             {{ form.description.label }}<br>
             {{ form.description(class="form-control", rows=4, cols=50) }}
         </div>
-        <button type="submit" class="btn btn-primary">Submit</button>
+
+        <button type="submit" class="btn btn-success">Submit</button>
     </form>
+
+    <script>
+        function updateServiceUrl() {
+            var select = document.getElementById('type');
+            var input = document.getElementById('service_url');
+
+            if (select.value === 'http' || select.value === 'https') {
+                input.value = select.value + '://';
+            } else if (select.value === 'port') {
+                input.value = '127.0.0.1:80';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateServiceUrl();
+        });
+    </script>
 </div>
 {% endblock %}
