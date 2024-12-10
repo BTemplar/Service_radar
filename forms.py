@@ -22,12 +22,21 @@ class RegistrationForm(FlaskForm):
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
-    password = PasswordField('Password', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
     remember_me = BooleanField('Remember Me')
     submit = SubmitField('Login')
 
 class AddServiceForm(FlaskForm):
-    service_name = StringField('Service name', validators=[DataRequired()])
-    service_url = StringField('Service url/ip:port', validators=[DataRequired()])
-    description = TextAreaField('Description')
+    service_name = StringField('Service name', validators=[DataRequired(), Length(max=30)])
+    service_url = StringField('Service url/ip:port', validators=[DataRequired(), Length(max=30)])
+    description = TextAreaField('Description', validators=[Length(max=30)])
     submit = SubmitField('Add Service')
+
+class EditServiceForm(FlaskForm):
+    service_name = StringField('Service name', validators=[DataRequired(), Length(max=30)])
+    service_url = StringField('Service url/ip:port', validators=[DataRequired(), Length(max=30)])
+    description = TextAreaField('Description', validators=[Length(max=30)])
+    submit = SubmitField('Edit Service')
+
+    def __init__(self, *args, **kwargs):
+        super(EditServiceForm, self).__init__(*args, **kwargs)

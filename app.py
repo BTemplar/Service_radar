@@ -7,7 +7,7 @@ import time
 import smtplib
 from email.mime.text import MIMEText
 from database import init_db, ServiceStatus, db, User, Service
-from forms import RegistrationForm, LoginForm, AddServiceForm
+from forms import RegistrationForm, LoginForm, AddServiceForm, EditServiceForm
 from flask_login import login_user, current_user, LoginManager
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -194,6 +194,24 @@ def add_service():
         flash('Your service has been added!', 'success')
         return redirect(url_for('index'))
     return render_template('add_service.html', title='Add Service', form=form)
+
+@app.route('/edit_service/<int:service_id>', methods=['GET', 'POST'])
+@login_required
+def edit_service(service_id):
+    service = Service.query.get_or_404(service_id)
+    form = EditServiceForm(obj=service)
+    if form.validate_on_submit():
+        service.service_name = form.service_name.data
+        service.service_url = form.service_url.data
+        service.description = form.description.data
+        db.session.commit()
+        flash('Your changes have been saved!', 'success')
+        return redirect(url_for('service_management'))
+    elif request.method == 'GET':
+        form.service_name.data = service.service_name
+        form.service_url.data = service.service_url
+        form.description.data = service.description
+    return render_template('edit_service.html', title='Edit Service', form=form)
 
 @app.route('/delete_service/<int:service_id>', methods=['POST'])
 @login_required
