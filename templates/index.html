@@ -9,6 +9,8 @@
             <th>Service URL</th>
             <th>Status</th>
             <th>Response Time (ms)</th>
+            <th>SLA (%)</th>
+            <th>Average Response Time (ms)</th>
         </tr>
     </thead>
     <tbody>
@@ -18,20 +20,10 @@
             <td>{{ service.service_url }}</td>
             <td>{{ service.status }}</td>
             <td>{{ service.response_time|float|round(2) }} ms</td>
+            <td>{{ sla_results.get(service.service_url, 0) }}%</td>
+            <td>{{ average_response_time_per_service.get(service.service_url, None)|float|round(2) }} ms</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
-
-<h2>SLA and Average Response Time</h2>
-<div class="row">
-    <div class="col-md-6">
-        <p>Total Responses: {{ total_responses }}</p>
-        <p>Online Count: {{ online_count }}</p>
-    </div>
-    <div class="col-md-6">
-        <p>SLA: {{ sla }}</p>
-        <p>Average Response Time: {{ average_response_time }}</p>
-    </div>
-</div>
 {% endblock content %}

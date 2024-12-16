@@ -151,26 +151,36 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
+
 @app.route('/', methods=['GET'])
 @login_required
 def index():
     services = ServiceStatus.query.order_by(ServiceStatus.timestamp.desc()).group_by(ServiceStatus.service_url).all()
     services_sla = ServiceStatus.query.all()
-    total_responses = len(services_sla)
-    online_count = sum(1 for s in services_sla if s.status == 'online')
-    services_user = Service.query.filter_by(user_id=current_user.id).with_entities(Service.id,
-                                                                                   Service.service_name,
-                                                                                   Service.service_url,
-                                                                                   Service.description).all()
 
-    if total_responses > 0:
-        sla_result = round((online_count / total_responses) * 100, 2)
-    else:
-        sla_result = 0
+    total_responses_per_service = {s.service_url: len([ss for ss in services_sla if ss.service_url == s.service_url])
+                                   for s in services}
 
-    average_response_time = sum(s.response_time for s in services_sla if s.response_time is not None) / len([s for s in services_sla if s.response_time is not None]) if any(s.response_time is not None for s in services_sla) else None
+    online_count_per_service = {
+        s.service_url: sum(1 for ss in services_sla if ss.status == 'online' and ss.service_url == s.service_url) for s
+        in services}
 
-    return render_template('index.html', services_user= services_user, services=services, total_responses=total_responses, online_count=online_count, sla=f"{sla_result:.2f}%", average_response_time=f"{average_response_time:.2f} ms" if average_response_time is not None else None)
+    sla_results = {service_url: round((online_count / total_responses) * 100, 2) if total_responses > 0 else 0
+                   for service_url, online_count in online_count_per_service.items()
+                   for total_responses in total_responses_per_service.values() if
+                   service_url == list(total_responses_per_service.keys())[
+                       list(total_responses_per_service.values()).index(total_responses)]}
+
+    average_response_time_per_service = {s.service_url: sum(ss.response_time for ss in services_sla if
+                                                            ss.service_url == s.service_url and ss.response_time is not None) / len(
+        [ss for ss in services_sla if ss.service_url == s.service_url and ss.response_time is not None])
+    if any(ss.response_time is not None for ss in services_sla if ss.service_url == s.service_url) else None
+                                         for s in services}
+
+    return render_template('index.html', services=services,
+                           total_responses_per_service=total_responses_per_service,
+                           online_count_per_service=online_count_per_service, sla_results=sla_results,
+                           average_response_time_per_service=average_response_time_per_service)
 
 @app.route('/service_management', methods=['GET'])
 @login_required
@@ -186,13 +196,24 @@ def service_management():
 @login_required
 def add_service():
     form = AddServiceForm()
+
+    # Проверка количества существующих сервисов для текущего пользователя
+    existing_services_count = Service.query.filter_by(user_id=current_user.id).count()
+
+    if existing_services_count >= 10:
+        flash('You have reached the maximum number of services allowed.', 'error')
+        return redirect(url_for('service_management'))
+
     if form.validate_on_submit():
-        service = Service(service_name=form.service_name.data,  service_url=form.service_url.data,
-                          description=form.description.data, user_id=current_user.id)
+        service = Service(service_name=form.service_name.data,
+                          service_url=form.service_url.data,
+                          description=form.description.data,
+                          user_id=current_user.id)
         db.session.add(service)
         db.session.commit()
         flash('Your service has been added!', 'success')
         return redirect(url_for('index'))
+
     return render_template('add_service.html', title='Add Service', form=form)
 
 @app.route('/edit_service/<int:service_id>', methods=['GET', 'POST'])

@@ -36,7 +36,7 @@ class EditServiceForm(FlaskForm):
     service_name = StringField('Service name', validators=[DataRequired(), Length(max=30)])
     service_url = StringField('Service url/ip:port', validators=[DataRequired(), Length(max=30)])
     description = TextAreaField('Description', validators=[Length(max=30)])
-    submit = SubmitField('Edit Service')
+    submit = SubmitField('Save')
 
     def __init__(self, *args, **kwargs):
         super(EditServiceForm, self).__init__(*args, **kwargs)
