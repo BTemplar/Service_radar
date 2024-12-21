@@ -38,7 +38,6 @@ def check_port(host, port):
     finally:
         sock.close()
 
-@login_required
 def check_services():
     results = []
     services = Service.query.filter_by(user_id=current_user.id).with_entities(Service.service_name,
@@ -129,6 +128,30 @@ def register():
         flash('You have successfully registered')
         return redirect(url_for('login'))
     return render_template('register.html', form=form)
+
+@app.route('/change_settings', methods=['GET', 'POST'])
+@login_required
+def change_settings():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        polling_interval = request.form.get('polling_interval')
+        email = request.form.get('email')
+
+        user_id = current_user.id
+        user = User.query.get(user_id)
+
+        if user:
+            if password:
+                user.set_password(password)
+            if polling_interval:
+                user.polling_interval = int(polling_interval)
+            if email:
+                user.email = email
+
+            db.session.commit()
+            return redirect(url_for('change_settings'))
+
+    return render_template('change_settings.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
