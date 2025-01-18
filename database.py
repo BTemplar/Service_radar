@@ -7,8 +7,8 @@ db = SQLAlchemy()
 
 class ServiceStatus(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    service_name = db.Column(db.String(255), nullable=False)
-    service_url = db.Column(db.String(255), nullable=False)
+    service_name = db.Column(db.String(255), nullable=True, unique=False)
+    service_url = db.Column(db.String(255), nullable=False, unique=False)
     status = db.Column(db.String(10), nullable=False)
     response_time = db.Column(db.Float)
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
@@ -16,16 +16,11 @@ class ServiceStatus(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
 
-    __table_args__ = (
-        db.UniqueConstraint('service_url', 'timestamp', name='uix_service_url_timestamp'),
-    )
-
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    polling_interval = db.Column(db.Integer, nullable=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -38,8 +33,8 @@ class User(UserMixin, db.Model):
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    service_name = db.Column(db.String(50), nullable=False, unique=True)
-    service_url = db.Column(db.String(255), nullable=False, unique=True)
+    service_name = db.Column(db.String(50), nullable=False, unique=False)
+    service_url = db.Column(db.String(255), nullable=False, unique=False)
     description = db.Column(db.Text, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 

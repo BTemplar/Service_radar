@@ -10,7 +10,7 @@
             <div class="card-body bg-success">
                 <p><strong>Username:</strong> {{ current_user.username }}</p>
                 <p><strong>Email:</strong> {{ current_user.email }}</p>
-                <p><strong>Polling Interval:</strong> {{ current_user.polling_interval }} seconds</p>
+                <p><strong>Polling Interval:</strong> {{ schedule_interval }} seconds</p>
             </div>
         </div>
 
@@ -20,10 +20,6 @@
                 <div class="mb-3">
                     <label for="new_password" class="form-label">New Password:</label>
                     <input type="password" class="form-control" id="new_password" name="new_password">
-                </div>
-                <div class="mb-3">
-                    <label for="polling_interval" class="form-label">Polling Interval (seconds):</label>
-                    <input type="number" class="form-control" id="polling_interval" name="polling_interval" min="1">
                 </div>
                 <div class="mb-3">
                     <label for="email" class="form-label">New Email:</label>

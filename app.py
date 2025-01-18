@@ -1,6 +1,23 @@
+# -*- coding: utf-8 -*-
+
+# Author: Rud Oleg
+# Created: 25-November-2024
+#
+# License: MIT License
+#
+# Usage: flask run --host=0.0.0.0
+
+# Dependencies:
+# - flask
+# - bootstrap5
+# - sqlalchemy
+
+# Version Information: 1.0
+
 from flask import Flask, jsonify, render_template, redirect, url_for, request, flash, abort
 from flask_login import login_required, logout_user
 from flask_bootstrap import Bootstrap5
+from sqlalchemy import func
 import requests
 import socket
 import time
@@ -17,6 +34,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///services.db'
 init_db(app)
 bootstrap = Bootstrap5(app)
 app.config['BOOTSTRAP_SERVE_LOCAL'] = True
+schedule_interval = 300 # Set the interval in seconds to request updated data
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -39,9 +57,53 @@ def check_port(host, port):
         sock.close()
 
 def check_services():
+    with app.app_context():
+        results = []
+        services = Service.query.with_entities(Service.service_name, Service.service_url, Service.id, Service.user_id).all()
+        for service_url in services:
+            if '://' not in service_url[1] and ':' in service_url[1]:
+                start_time = time.time()
+                host, port = service_url[1].split(':')
+                port = int(port)
+                status = 'online' if check_port(host, port) else 'offline'
+                end_time = time.time()
+                response_time = (end_time - start_time) * 1000
+            else:
+                try:
+                    start_time = time.time()
+                    response = requests.get(service_url[1], timeout=5)
+                    end_time = time.time()
+                    response_time = (end_time - start_time) * 1000
+                    status = 'online'
+                except requests.RequestException as e:
+                    response_time = None
+                    status = 'offline'
+            if status == 'offline':
+                response_time = 9999.99
+            service_status = ServiceStatus(
+                service_name=service_url[0],
+                service_url=service_url[1],
+                status=status,
+                response_time=response_time,
+                user_id=service_url[3],
+                service_id=service_url[2]
+            )
+            db.session.add(service_status)
+            results.append({
+                "service_name": service_url[0],
+                "service_url": service_url[1],
+                "status": status,
+                "response_time": f"{response_time:.2f} ms" if response_time is not None else None
+            })
+        db.session.commit()
+
+    return results
+
+
+def check_user_services():
     results = []
     services = Service.query.filter_by(user_id=current_user.id).with_entities(Service.service_name,
-                                                                                   Service.service_url, Service.id).all()
+                                                                              Service.service_url, Service.id).all()
     for service_url in services:
         if '://' not in service_url[1] and ':' in service_url[1]:
             start_time = time.time()
@@ -62,22 +124,12 @@ def check_services():
                 status = 'offline'
         if status == 'offline':
             response_time = 9999.99
-        service_status = ServiceStatus(
-            service_name=service_url[0],
-            service_url=service_url[1],
-            status=status,
-            response_time=response_time,
-            user_id=current_user.id,
-            service_id=service_url[2]
-        )
-        db.session.add(service_status)
         results.append({
             "service_name": service_url[0],
             "service_url": service_url[1],
             "status": status,
             "response_time": f"{response_time:.2f} ms" if response_time is not None else None
         })
-    db.session.commit()
 
     return results
 
@@ -107,9 +159,9 @@ def monitor_services():
             last_status = get_last_status(service_url[1])
             if last_status != current_status['status']:
                 if current_status['status'] == 'offline':
-                    send_email(f"Service {service_url[0]} is offline", f"The service {service_url[0]} has gone offline at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+                    send_email(f"Service {service_url[0]} is now offline", f"The service {service_url[0]} has gone offline at {time.strftime('%Y-%m-%d %H:%M:%S')}")
                 else:
-                    send_email(f"Service {service_url[0]} is online", f"The service {service_url[0]} is now online at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+                    send_email(f"Service {service_url[0]} is now online", f"The service {service_url[0]} is now online at {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -151,7 +203,7 @@ def change_settings():
             db.session.commit()
             return redirect(url_for('change_settings'))
 
-    return render_template('change_settings.html')
+    return render_template('change_settings.html', schedule_interval=schedule_interval)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -178,8 +230,17 @@ def logout():
 @app.route('/', methods=['GET'])
 @login_required
 def index():
-    services = ServiceStatus.query.order_by(ServiceStatus.timestamp.desc()).group_by(ServiceStatus.service_url).all()
-    services_sla = ServiceStatus.query.all()
+    subquery = (ServiceStatus.query
+                .with_entities(ServiceStatus.service_url,
+                               func.max(ServiceStatus.timestamp).label('max_timestamp'))
+                .group_by(ServiceStatus.service_url).filter_by(user_id=current_user.id)
+                ).subquery()
+
+    services = ServiceStatus.query.filter_by(user_id=current_user.id).join(subquery,
+                                        (ServiceStatus.service_url == subquery.c.service_url) &
+                                        (ServiceStatus.timestamp == subquery.c.max_timestamp))
+
+    services_sla = ServiceStatus.query.filter_by(user_id=current_user.id).all()
 
     total_responses_per_service = {s.service_url: len([ss for ss in services_sla if ss.service_url == s.service_url])
                                    for s in services}
@@ -190,9 +251,7 @@ def index():
 
     sla_results = {service_url: round((online_count / total_responses) * 100, 2) if total_responses > 0 else 0
                    for service_url, online_count in online_count_per_service.items()
-                   for total_responses in total_responses_per_service.values() if
-                   service_url == list(total_responses_per_service.keys())[
-                       list(total_responses_per_service.values()).index(total_responses)]}
+                   for total_responses in [total_responses_per_service[service_url]]}
 
     average_response_time_per_service = {s.service_url: sum(ss.response_time for ss in services_sla if
                                                             ss.service_url == s.service_url and ss.response_time is not None) / len(
@@ -273,10 +332,10 @@ def delete_service(service_id):
 @login_required
 def check_services_route():
     with app.app_context():
-        return jsonify(check_services())
+        return jsonify(check_user_services())
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=monitor_services, trigger='interval', seconds=300) # Set the interval in seconds to request updated data
+scheduler.add_job(func=check_services, trigger='interval', seconds=schedule_interval)
 scheduler.start()
 
 @app.route('/sla', methods=['GET'])
