@@ -1,6 +1,8 @@
 import urllib.request as urllib2
 import json
+from functools import lru_cache
 
+@lru_cache(maxsize=100)
 def get_location(ip):
     url = "http://ip-api.com/json/"
     response = urllib2.urlopen(url + ip)

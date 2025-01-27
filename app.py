@@ -18,7 +18,6 @@ from flask import Flask, jsonify, render_template, redirect, url_for, request, f
 from flask_login import login_required, logout_user
 from flask_bootstrap import Bootstrap5
 from sqlalchemy import func
-import requests
 import socket
 import time
 import smtplib
@@ -28,6 +27,7 @@ from forms import RegistrationForm, LoginForm, AddServiceForm, EditServiceForm
 from flask_login import login_user, current_user, LoginManager
 from apscheduler.schedulers.background import BackgroundScheduler
 from location import get_location
+from urllib.parse import urlparse
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -59,45 +59,52 @@ def check_port(host, port):
 
 def check_services():
     with app.app_context():
-        results = []
         services = Service.query.with_entities(Service.service_name, Service.service_url, Service.id, Service.user_id).all()
-        for service_url in services:
-            if '://' not in service_url[1] and ':' in service_url[1]:
-                start_time = time.time()
-                host, port = service_url[1].split(':')
-                port = int(port)
-                status = 'online' if check_port(host, port) else 'offline'
-                service_ip = host
-                end_time = time.time()
-                response_time = (end_time - start_time) * 1000
-            else:
-                try:
-                    start_time = time.time()
-                    response = requests.get(service_url[1], timeout=5)
-                    prot, host = service_url[1].split(':')
-                    service_ip = host
-                    end_time = time.time()
-                    response_time = (end_time - start_time) * 1000
-                    status = 'online'
-                except requests.RequestException as e:
-                    response_time = None
-                    status = 'offline'
-            if status == 'offline':
-                response_time = 9999.99
+        for service in services:
+            service_name, service_url, service_id, user_id = service
+            try:
+                parsed = urlparse(str(service_url))
+                if not parsed.scheme:
+                    parsed = urlparse(f"http://{service_url}")
 
-            location_info = get_location(service_ip)
+                if parsed.port:
+                    host, port = parsed.hostname, parsed.port
+                else:
+                    host, port = parsed.hostname, 80 if parsed.scheme == "http" else 443
+
+                start_time = time.time()
+                status = 'online' if check_port(host, port) else 'offline'
+                response_time = (time.time() - start_time) * 1000
+
+            except Exception as e:
+                status = 'offline'
+                response_time = 9999.99
+                app.logger.error(f"URL parsing failed: {e}")
+
+            # Получение геолокации с обработкой ошибок
+            try:
+                location_info = get_location(host)
+            except Exception as e:
+                location_info = {
+                    "query": host,
+                    "countryCode": "N/A",
+                    "region": "N/A",
+                    "city": "N/A",
+                    "isp": "N/A",
+                    "timezone": "N/A"
+                }
 
             service_status = ServiceStatus(
-                service_name=service_url[0],
-                service_url=service_url[1],
+                service_name=service_name,
+                service_url=service_url,
                 service_ip=location_info['query'],
-                service_location=f'{location_info['countryCode']} {location_info['region']} {location_info['city']}',
+                service_location=f"{location_info.get('countryCode', 'N/A')} {location_info.get('region', 'N/A')} {location_info.get('city', 'N/A')}",
                 service_isp=location_info['isp'],
                 service_timezone=location_info['timezone'],
                 status=status,
                 response_time=response_time,
-                user_id=service_url[3],
-                service_id=service_url[2]
+                user_id=user_id,
+                service_id=service_id
             )
             db.session.add(service_status)
         db.session.commit()
@@ -105,46 +112,51 @@ def check_services():
 
 def check_user_services():
     results = []
-    services = Service.query.filter_by(user_id=current_user.id).with_entities(Service.service_name,
-                                                                              Service.service_url, Service.id).all()
-    for service_url in services:
-        if '://' not in service_url[1] and ':' in service_url[1]:
+    services = Service.query.filter_by(user_id=current_user.id).with_entities(Service.service_name, Service.service_url,
+                                                                              Service.id).all()
+    for service in services:
+        service_name, service_url, service_id = service
+        try:
+            parsed = urlparse(str(service_url))
+            if not parsed.scheme:
+                parsed = urlparse(f"http://{service_url}")
+
+            if parsed.port:
+                host, port = parsed.hostname, parsed.port
+            else:
+                host, port = parsed.hostname, 80 if parsed.scheme == "http" else 443
+
             start_time = time.time()
-            host, port = service_url[1].split(':')
-            port = int(port)
             status = 'online' if check_port(host, port) else 'offline'
-            service_ip = host
-            end_time = time.time()
-            response_time = (end_time - start_time) * 1000
-        else:
-            try:
-                start_time = time.time()
-                response = requests.get(service_url[1], timeout=5)
-                prot, host = service_url[1].split(':')
-                service_ip = host
-                status = 'online'
-                end_time = time.time()
-                response_time = (end_time - start_time) * 1000
-            except requests.RequestException as e:
-                response_time = None
-                status = 'offline'
+            response_time = (time.time() - start_time) * 1000
 
-        location_info = get_location(service_ip)
-        print(location_info)
-
-        if status == 'offline':
+        except Exception as e:
+            status = 'offline'
             response_time = 9999.99
-        results.append({
-            "service_name": service_url[0],
-            "service_url": service_url[1],
-            "service_ip": location_info['query'],
-            "response_time": f"{response_time:.2f} ms" if response_time is not None else None,
-            "status": status,
-            "service_location": f'{location_info['countryCode']} {location_info['region']} {location_info['city']}',
-            "service_isp": location_info['isp'],
-            "service_timezone": location_info['timezone'],
-        })
+            app.logger.error(f"URL parsing failed: {e}")
 
+        # Получение геолокации с обработкой ошибок
+        try:
+            location_info = get_location(host)
+        except Exception as e:
+            location_info = {
+                "query": host,
+                "countryCode": "N/A",
+                "region": "N/A",
+                "city": "N/A",
+                "isp": "N/A",
+                "timezone": "N/A"
+            }
+
+        results.append({
+            "service_name": service_name,
+            "service_url": service_url,
+            "status": status,
+            "response_time": f"{response_time:.2f} ms",
+            "service_location": f"{location_info.get('countryCode', 'N/A')} {location_info.get('region', 'N/A')} {location_info.get('city', 'N/A')}",
+            "service_isp": location_info.get('isp', 'N/A'),
+            "service_timezone": location_info.get('timezone', 'N/A')
+        })
     return results
 
 @login_required
@@ -376,4 +388,4 @@ def sla():
 
 
 if __name__ == '__main__':
-    app.run(Debug=True)
+    app.run(debug=True)
