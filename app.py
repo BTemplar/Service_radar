@@ -27,6 +27,7 @@ from database import init_db, ServiceStatus, db, User, Service
 from forms import RegistrationForm, LoginForm, AddServiceForm, EditServiceForm
 from flask_login import login_user, current_user, LoginManager
 from apscheduler.schedulers.background import BackgroundScheduler
+from location import get_location
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -66,12 +67,15 @@ def check_services():
                 host, port = service_url[1].split(':')
                 port = int(port)
                 status = 'online' if check_port(host, port) else 'offline'
+                service_ip = host
                 end_time = time.time()
                 response_time = (end_time - start_time) * 1000
             else:
                 try:
                     start_time = time.time()
                     response = requests.get(service_url[1], timeout=5)
+                    prot, host = service_url[1].split(':')
+                    service_ip = host
                     end_time = time.time()
                     response_time = (end_time - start_time) * 1000
                     status = 'online'
@@ -80,24 +84,23 @@ def check_services():
                     status = 'offline'
             if status == 'offline':
                 response_time = 9999.99
+
+            location_info = get_location(service_ip)
+
             service_status = ServiceStatus(
                 service_name=service_url[0],
                 service_url=service_url[1],
+                service_ip=location_info['query'],
+                service_location=f'{location_info['countryCode']} {location_info['region']} {location_info['city']}',
+                service_isp=location_info['isp'],
+                service_timezone=location_info['timezone'],
                 status=status,
                 response_time=response_time,
                 user_id=service_url[3],
                 service_id=service_url[2]
             )
             db.session.add(service_status)
-            results.append({
-                "service_name": service_url[0],
-                "service_url": service_url[1],
-                "status": status,
-                "response_time": f"{response_time:.2f} ms" if response_time is not None else None
-            })
         db.session.commit()
-
-    return results
 
 
 def check_user_services():
@@ -110,25 +113,36 @@ def check_user_services():
             host, port = service_url[1].split(':')
             port = int(port)
             status = 'online' if check_port(host, port) else 'offline'
+            service_ip = host
             end_time = time.time()
             response_time = (end_time - start_time) * 1000
         else:
             try:
                 start_time = time.time()
                 response = requests.get(service_url[1], timeout=5)
+                prot, host = service_url[1].split(':')
+                service_ip = host
+                status = 'online'
                 end_time = time.time()
                 response_time = (end_time - start_time) * 1000
-                status = 'online'
             except requests.RequestException as e:
                 response_time = None
                 status = 'offline'
+
+        location_info = get_location(service_ip)
+        print(location_info)
+
         if status == 'offline':
             response_time = 9999.99
         results.append({
             "service_name": service_url[0],
             "service_url": service_url[1],
+            "service_ip": location_info['query'],
+            "response_time": f"{response_time:.2f} ms" if response_time is not None else None,
             "status": status,
-            "response_time": f"{response_time:.2f} ms" if response_time is not None else None
+            "service_location": f'{location_info['countryCode']} {location_info['region']} {location_info['city']}',
+            "service_isp": location_info['isp'],
+            "service_timezone": location_info['timezone'],
         })
 
     return results
@@ -248,7 +262,6 @@ def index():
     online_count_per_service = {
         s.service_url: sum(1 for ss in services_sla if ss.status == 'online' and ss.service_url == s.service_url) for s
         in services}
-
     sla_results = {service_url: round((online_count / total_responses) * 100, 2) if total_responses > 0 else 0
                    for service_url, online_count in online_count_per_service.items()
                    for total_responses in [total_responses_per_service[service_url]]}

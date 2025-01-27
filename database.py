@@ -7,8 +7,12 @@ db = SQLAlchemy()
 
 class ServiceStatus(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    service_name = db.Column(db.String(255), nullable=True, unique=False)
+    service_name = db.Column(db.String(255), nullable=False, unique=False)
     service_url = db.Column(db.String(255), nullable=False, unique=False)
+    service_ip = db.Column(db.String(255), nullable=False, unique=False)
+    service_location = db.Column(db.String(255), nullable=False, unique=False)
+    service_isp = db.Column(db.String(255), nullable=False, unique=False)
+    service_timezone = db.Column(db.String(255), nullable=False, unique=False)
     status = db.Column(db.String(10), nullable=False)
     response_time = db.Column(db.Float)
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())

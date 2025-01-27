@@ -9,12 +9,14 @@ def get_location(ip):
 
     return values
 
-ip = input("What is your target IP: ")
-values = get_location(ip)
+if __name__ == '__main__':
 
-print("IP: " + values["query"])
-print("City: " + values["city"])
-print("ISP: " + values["isp"])
-print("Country: " + values["country"])
-print("Region: " + values["region"])
-print("Timezone: " + values["timezone"])
+    ip = input("What is your target IP: ")
+    values = get_location(ip)
+
+    print("IP: " + values["query"])
+    print("City: " + values["city"])
+    print("ISP: " + values["isp"])
+    print("Country: " + values["country"])
+    print("Region: " + values["region"])
+    print("Timezone: " + values["timezone"])
