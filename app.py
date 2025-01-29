@@ -28,14 +28,36 @@ from flask_login import login_user, current_user, LoginManager
 from apscheduler.schedulers.background import BackgroundScheduler
 from location import get_location
 from urllib.parse import urlparse
-
+import configparser
+import os
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///services.db'
 init_db(app)
 bootstrap = Bootstrap5(app)
 app.config['BOOTSTRAP_SERVE_LOCAL'] = True
-schedule_interval = 300 # Set the interval in seconds to request updated data
+config = configparser.ConfigParser()
+config['SMTP'] = {
+    'e-mail': 'your-email@example.com',
+    'password': '<PASSWORD>',
+    'server': 'smtp.example.com',
+    'port': '587'
+}
+config['Schedule'] = {
+    'interval': '300' # Set the interval in seconds to request updated data
+}
+config_path = 'conf/config.ini'
+os.makedirs(os.path.dirname(config_path), exist_ok=True)
+
+if not os.path.exists(config_path):
+    with open(config_path, 'w') as f:
+        config.write(f)
+    print("The configuration file is missing. A standard configuration file has been created")
+else:
+    config.read('conf/config.ini')
+    print("The configuration file was successfully read")
+
+schedule_interval = int(config['Schedule']['interval'])
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -163,12 +185,12 @@ def check_user_services():
 def send_email(subject, message):
     msg = MIMEText(message)
     msg['Subject'] = subject
-    msg['From'] = 'your-email@example.com'
+    msg['From'] = config['SMTP']['e-mail']
     msg['To'] = 'recipient-email@example.com'
 
-    with smtplib.SMTP('smtp.example.com', 587) as server:
+    with smtplib.SMTP(config['SMTP']['server'], int(config['SMTP']['port'])) as server:
         server.starttls()
-        server.login(msg['From'], 'your-email-password')
+        server.login(msg['From'], config['SMTP']['password'])
         server.sendmail(msg['From'], [msg['To']], msg.as_string())
 
 def get_last_status(service_url):
@@ -388,4 +410,4 @@ def sla():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
