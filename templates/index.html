@@ -7,10 +7,14 @@
         <tr>
             <th>Service name</th>
             <th>Service URL</th>
+            <th>IP</th>
             <th>Status</th>
             <th>Response Time (ms)</th>
             <th>SLA (%)</th>
-            <th>Average Response Time (ms)</th>
+            <th>ART (ms)</th>
+            <th>Location</th>
+            <th>ISP</th>
+            <th>Timezone</th>
         </tr>
     </thead>
     <tbody>
@@ -18,10 +22,14 @@
         <tr class="{{ 'table-success' if service.status == 'online' else 'table-danger' }}">
             <td>{{ service.service_name }}</td>
             <td>{{ service.service_url }}</td>
+            <td>{{ service.service_ip }}</td>
             <td>{{ service.status }}</td>
             <td>{{ service.response_time|float|round(2) }} ms</td>
             <td>{{ sla_results.get(service.service_url, 0) }}%</td>
             <td>{{ average_response_time_per_service.get(service.service_url, None)|float|round(2) }} ms</td>
+            <td>{{ service.service_location }}</td>
+            <td>{{ service.service_isp }}</td>
+            <td>{{ service.service_timezone }}</td>
         </tr>
         {% endfor %}
     </tbody>
