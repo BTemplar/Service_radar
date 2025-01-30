@@ -101,9 +101,9 @@ def check_services():
             except Exception as e:
                 status = 'offline'
                 response_time = 9999.99
-                app.logger.error(f"URL parsing failed: {e}")
+                # user_email = User.query.filter_by(id=user_id).with_entities(User.email).one()
+                # monitor_services(user_email, service_name, service_url)
 
-            # Получение геолокации с обработкой ошибок
             try:
                 location_info = get_location(host)
             except Exception as e:
@@ -119,10 +119,10 @@ def check_services():
             service_status = ServiceStatus(
                 service_name=service_name,
                 service_url=service_url,
-                service_ip=location_info['query'],
+                service_ip=location_info.get('query', 'N/A'),
                 service_location=f"{location_info.get('countryCode', 'N/A')} {location_info.get('region', 'N/A')} {location_info.get('city', 'N/A')}",
-                service_isp=location_info['isp'],
-                service_timezone=location_info['timezone'],
+                service_isp=location_info.get('isp', 'N/A'),
+                service_timezone=location_info.get('timezone', 'N/A'),
                 status=status,
                 response_time=response_time,
                 user_id=user_id,
@@ -130,6 +130,7 @@ def check_services():
             )
             db.session.add(service_status)
         db.session.commit()
+        monitor_services()
 
 
 def check_user_services():
@@ -181,35 +182,37 @@ def check_user_services():
         })
     return results
 
-@login_required
-def send_email(subject, message):
+def send_email(subject, message, user_email):
+
     msg = MIMEText(message)
     msg['Subject'] = subject
     msg['From'] = config['SMTP']['e-mail']
-    msg['To'] = 'recipient-email@example.com'
+    msg['To'] = user_email[0]
 
     with smtplib.SMTP(config['SMTP']['server'], int(config['SMTP']['port'])) as server:
         server.starttls()
-        server.login(msg['From'], config['SMTP']['password'])
+        server.login(config['SMTP']['e-mail'], config['SMTP']['password'])
         server.sendmail(msg['From'], [msg['To']], msg.as_string())
 
 def get_last_status(service_url):
-    last_status = ServiceStatus.query.filter_by(service_url=service_url).order_by(ServiceStatus.timestamp.desc()).first()
-    return last_status.status if last_status else None
+    current_status = ServiceStatus.query.filter_by(service_url=service_url).order_by(ServiceStatus.timestamp.desc()).first()
+    last_status = ServiceStatus.query.filter_by(service_url=service_url).order_by(
+        ServiceStatus.timestamp.desc()).offset(1).first()
+    return last_status.status, current_status.status if last_status else None
 
-@login_required
 def monitor_services():
     with app.app_context():
-        services = Service.query.filter_by(user_id=current_user.id).with_entities(Service.service_name,
-                                                                                  Service.service_url).all()
-        current_statuses = check_services()
-        for service_url, current_status in zip(services, current_statuses):
-            last_status = get_last_status(service_url[1])
-            if last_status != current_status['status']:
-                if current_status['status'] == 'offline':
-                    send_email(f"Service {service_url[0]} is now offline", f"The service {service_url[0]} has gone offline at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        services = Service.query.with_entities(Service.service_name, Service.service_url, Service.id,
+                                               Service.user_id).all()
+        for service in services:
+            service_name, service_url, service_id, user_id = service
+            user_email = User.query.filter_by(id=user_id).with_entities(User.email).one()
+            last_status, current_status = get_last_status(service_url)
+            if last_status != current_status and last_status is not None:
+                if current_status == 'offline':
+                    send_email(f"Service {service_name} is now offline", f"The service {service_url} has gone offline at {time.strftime('%Y-%m-%d %H:%M:%S')}", user_email)
                 else:
-                    send_email(f"Service {service_url[0]} is now online", f"The service {service_url[0]} is now online at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+                    send_email(f"Service {service_name} is now online", f"The service {service_url} is now online at {time.strftime('%Y-%m-%d %H:%M:%S')}", user_email)
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -234,7 +237,6 @@ def register():
 def change_settings():
     if request.method == 'POST':
         password = request.form.get('password')
-        polling_interval = request.form.get('polling_interval')
         email = request.form.get('email')
 
         user_id = current_user.id
@@ -243,12 +245,11 @@ def change_settings():
         if user:
             if password:
                 user.set_password(password)
-            if polling_interval:
-                user.polling_interval = int(polling_interval)
             if email:
                 user.email = email
 
             db.session.commit()
+            flash('You have successfully change settings')
             return redirect(url_for('change_settings'))
 
     return render_template('change_settings.html', schedule_interval=schedule_interval)

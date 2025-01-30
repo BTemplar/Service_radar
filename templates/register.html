@@ -1,13 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Register</title>
-    <!-- Bootstrap CSS -->
-    {{ bootstrap.load_css() }}
-</head>
-<body>
-
+{#<!DOCTYPE html>#}
+{#<html lang="en">#}
+{#<head>#}
+{#    <meta charset="UTF-8">#}
+{#    <title>Register</title>#}
+{#    <!-- Bootstrap CSS -->#}
+{#    {{ bootstrap.load_css() }}#}
+{#</head>#}
+{#<body>#}
+{% extends "base.html" %}
+{% block title %}Home|Service Status{% endblock %}
+{% block content %}
 <div class="container mt-3">
     <h1>Register</h1>
 
@@ -45,3 +47,4 @@
 {{ bootstrap.load_js() }}
 </body>
 </html>
+{% endblock content %}
