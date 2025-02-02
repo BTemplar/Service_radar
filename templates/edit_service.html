@@ -1,33 +1,99 @@
 {% extends "base.html" %}
-{% block title %}Edit Service|Service Status{% endblock %}
+{% block title %}Edit Service{% endblock %}
+
 {% block content %}
-<h1>Edit Service</h1>
-<form method="POST" action="">
-    {{ form.hidden_tag() }}
+<div class="container-fluid py-4">
+    <div class="card shadow-lg border-0 mx-auto" style="max-width: 600px;">
+        <div class="card-header bg-transparent py-3">
+            <h2 class="mb-0">
+                <i class="fas fa-edit me-2"></i>Edit Service
+            </h2>
+        </div>
 
-    <div class="form-group">
-        {{ form.service_name.label }}<br>
-        {{ form.service_name(size=20) }}
-        {% for error in form.service_name.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </div>
+        <div class="card-body">
+            <form method="POST" action="" novalidate>
+                {{ form.hidden_tag() }}
 
-    <div class="form-group">
-        {{ form.service_url.label }}<br>
-        {{ form.service_url(size=30) }}
-        {% for error in form.service_url.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </div>
+                <div class="mb-4 position-relative">
+                    <label class="form-label text-muted small mb-1">
+                        <i class="fas fa-tag me-1"></i>Service Name
+                    </label>
+                    <div class="input-group">
+                        {{ form.service_name(class="form-control ps-4", placeholder="Enter service name") }}
+                        <i class="fas fa-server input-icon"></i>
+                    </div>
+                    {% for error in form.service_name.errors %}
+                    <div class="text-danger small mt-1">
+                        <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
 
-    <div class="form-group">
-        {{ form.description.label }}<br>
-        {{ form.description(rows=2, cols=50) }}
-        {% for error in form.description.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
+                <div class="mb-4 position-relative">
+                    <label class="form-label text-muted small mb-1">
+                        <i class="fas fa-link me-1"></i>Service URL
+                    </label>
+                    <div class="input-group">
+                        {{ form.service_url(class="form-control ps-4", placeholder="https://example.com") }}
+                        <i class="fas fa-globe input-icon"></i>
+                    </div>
+                    {% for error in form.service_url.errors %}
+                    <div class="text-danger small mt-1">
+                        <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-4 position-relative">
+                    <label class="form-label text-muted small mb-1">
+                        <i class="fas fa-align-left me-1"></i>Description
+                    </label>
+                    {{ form.description(class="form-control", rows="3",
+                      placeholder="Enter service description") }}
+                    {% for error in form.description.errors %}
+                    <div class="text-danger small mt-1">
+                        <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ url_for('service_management') }}"
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Update Service
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-    <p class="btn btn-success">{{ form.submit() }}</p>
-</form>
+</div>
+
+<style>
+    .input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary-color);
+        z-index: 3;
+    }
+
+    .form-control {
+        padding-left: 40px !important;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(31, 82, 41, 0.25);
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        padding: 12px !important;
+    }
+</style>
 {% endblock %}

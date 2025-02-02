@@ -180,6 +180,20 @@ def check_user_services():
             "service_isp": location_info.get('isp', 'N/A'),
             "service_timezone": location_info.get('timezone', 'N/A')
         })
+        service_status = ServiceStatus(
+            service_name=service_name,
+            service_url=service_url,
+            service_ip=location_info.get('query', 'N/A'),
+            service_location=f"{location_info.get('countryCode', 'N/A')} {location_info.get('region', 'N/A')} {location_info.get('city', 'N/A')}",
+            service_isp=location_info.get('isp', 'N/A'),
+            service_timezone=location_info.get('timezone', 'N/A'),
+            status=status,
+            response_time=response_time,
+            user_id=current_user.id,
+            service_id=service_id
+        )
+        db.session.add(service_status)
+        db.session.commit()
     return results
 
 def send_email(subject, message, user_email):
@@ -327,7 +341,6 @@ def service_management():
 def add_service():
     form = AddServiceForm()
 
-    # Проверка количества существующих сервисов для текущего пользователя
     existing_services_count = Service.query.filter_by(user_id=current_user.id).count()
 
     if existing_services_count >= 10:
@@ -341,8 +354,9 @@ def add_service():
                           user_id=current_user.id)
         db.session.add(service)
         db.session.commit()
+        check_services_route()
         flash('Your service has been added!', 'success')
-        return redirect(url_for('index'))
+        return redirect(url_for('service_management'))
 
     return render_template('add_service.html', title='Add Service', form=form)
 
@@ -374,7 +388,7 @@ def delete_service(service_id):
     db.session.delete(service)
     db.session.commit()
     flash('Your service has been deleted!', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('service_management'))
 
 @app.route('/check_services', methods=['GET'])
 @login_required

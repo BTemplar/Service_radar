@@ -1,61 +1,149 @@
 {% extends "base.html" %}
+{% block title %}Add Service{% endblock %}
 
-{% block title %}Add Service|Service Status{% endblock %}
 {% block content %}
-<div class="container mt-3">
-    <h1>Add Service</h1>
-
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="alert alert-success" role="alert">
-                {% for message in messages %}
-                    {{ message }}<br>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-
-    <form method="POST" action="">
-        {{ form.hidden_tag() }}
-        <div class="form-group">
-            {{ form.service_name.label }}<br>
-            {{ form.service_name(class="form-control", size=32) }}
-        </div>
-        <div class="form-group">
-            <label for="type">Type</label><br>
-            <select id="type" onchange="updateServiceUrl()">
-                <option value="http">HTTP</option>
-                <option value="https">HTTPS</option>
-                <option value="port">Port</option>
-            </select>
-        </div>
-        <div class="form-group">
-            {{ form.service_url.label }}<br>
-            {{ form.service_url(class="form-control", size=52, id="service_url") }}
-        </div>
-        <div class="form-group">
-            {{ form.description.label }}<br>
-            {{ form.description(class="form-control", rows=4, cols=50) }}
+<div class="container-fluid py-4">
+    <div class="card shadow-lg border-0 mx-auto" style="max-width: 600px;">
+        <div class="card-header bg-transparent py-3">
+            <h2 class="mb-0">
+                <i class="fas fa-plus-circle me-2"></i>Add New Service
+            </h2>
         </div>
 
-        <button type="submit" class="btn btn-success">Submit</button>
-    </form>
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>{{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-    <script>
-        function updateServiceUrl() {
-            var select = document.getElementById('type');
-            var input = document.getElementById('service_url');
+            <form method="POST" action="" novalidate>
+                {{ form.hidden_tag() }}
 
-            if (select.value === 'http' || select.value === 'https') {
-                input.value = select.value + '://';
-            } else if (select.value === 'port') {
-                input.value = '127.0.0.1:80';
-            }
-        }
+                <div class="mb-4 position-relative">
+                    <label class="form-label text-muted small mb-1">
+                        <i class="fas fa-tag me-1"></i>Service Name
+                    </label>
+                    <div class="input-group">
+                        {{ form.service_name(class="form-control ps-4", placeholder="Enter service name") }}
+                        <i class="fas fa-server input-icon"></i>
+                    </div>
+                    {% for error in form.service_name.errors %}
+                    <div class="text-danger small mt-1">
+                        <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
 
-        document.addEventListener('DOMContentLoaded', function() {
-            updateServiceUrl();
-        });
-    </script>
+                <div class="mb-4">
+                    <label class="form-label text-muted small mb-1">
+                        <i class="fas fa-network-wired me-1"></i>Connection Type
+                    </label>
+                    <div class="input-group">
+                        <select class="form-select ps-4" id="type" onchange="updateServiceUrl()">
+                            <option value="http">HTTP</option>
+                            <option value="https">HTTPS</option>
+                            <option value="port">Port</option>
+                        </select>
+                        <i class="fas fa-plug input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="mb-4 position-relative">
+                    <label class="form-label text-muted small mb-1">
+                        <i class="fas fa-link me-1"></i>Service URL
+                    </label>
+                    <div class="input-group">
+                        {{ form.service_url(class="form-control ps-4", placeholder="Enter URL", id="service_url") }}
+                        <i class="fas fa-globe input-icon"></i>
+                    </div>
+                    {% for error in form.service_url.errors %}
+                    <div class="text-danger small mt-1">
+                        <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-4 position-relative">
+                    <label class="form-label text-muted small mb-1">
+                        <i class="fas fa-align-left me-1"></i>Description
+                    </label>
+                    {{ form.description(class="form-control", rows="3",
+                      placeholder="Enter service description") }}
+                    {% for error in form.description.errors %}
+                    <div class="text-danger small mt-1">
+                        <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ url_for('service_management') }}"
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Create Service
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+<style>
+    .input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary-color);
+        z-index: 3;
+    }
+
+    .form-control, .form-select {
+        padding-left: 40px !important;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(31, 82, 41, 0.25);
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        padding: 12px !important;
+    }
+
+    .form-select {
+        background-position: right 1.5rem center;
+    }
+</style>
+
+<script>
+    function updateServiceUrl() {
+        const select = document.getElementById('type');
+        const input = document.getElementById('service_url');
+        const protocol = select.value === 'port' ? '' : select.value + '://';
+
+        if (select.value === 'port') {
+            input.value = '127.0.0.1:80';
+        } else {
+            input.value = protocol;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateServiceUrl();
+        new bootstrap.Tooltip(document.body, {
+            selector: '[data-bs-toggle="tooltip"]'
+        });
+    });
+</script>
 {% endblock %}

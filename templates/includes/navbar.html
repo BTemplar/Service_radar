@@ -1,32 +1,122 @@
 {% block navbar %}
-<nav class="navbar navbar-expand-xl navbar-light fixed-top" style="background-color: #e3f2fd;">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="#">Service status</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
-      <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Welcome, {{ current_user.username }}!</h5>
-        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-      </div>
-      <div class="offcanvas-body">
-        <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="/">Home</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/service_management">Service Management</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/change_settings">Settings</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/logout">Logout</a>
-          </li>
-        </ul>
-      </div>
+<style>
+    .navbar {
+        background: rgba(255, 255, 255, 0.95) !important;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+        padding: 0.5rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .navbar-brand {
+        font-weight: 600;
+        color: var(--primary-color) !important;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .nav-link {
+        color: #555 !important;
+        font-weight: 500;
+        padding: 0.5rem 1rem !important;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .nav-link:hover {
+        color: var(--primary-color) !important;
+        background: rgba(31, 82, 41, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .nav-link.active {
+        color: var(--primary-color) !important;
+        background: rgba(31, 82, 41, 0.15);
+    }
+
+    .offcanvas {
+        background: rgba(255, 255, 255, 0.98) !important;
+        border-left: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .offcanvas-header {
+        border-bottom: 1px solid #eee;
+        padding: 1.5rem;
+    }
+
+    .offcanvas-title {
+        color: var(--primary-color);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .navbar-toggler {
+        border: none;
+        padding: 0.5rem;
+    }
+
+    .navbar-toggler:focus {
+        box-shadow: none;
+    }
+</style>
+<nav class="navbar navbar-expand-xl navbar-light fixed-top">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">
+            <i class="fas fa-satellite-dish"></i>
+            Service Radar
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title">
+                    <i class="fas fa-user-circle me-2"></i>
+                    {{ current_user.username }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+            </div>
+
+            <div class="offcanvas-body">
+                <ul class="navbar-nav ms-auto align-items-xl-center">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}"
+                           href="{{ url_for('index') }}">
+                            <i class="fas fa-home"></i>
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'service_management' %}active{% endif %}"
+                           href="{{ url_for('service_management') }}">
+                            <i class="fas fa-cogs"></i>
+                            Services
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'change_settings' %}active{% endif %}"
+                           href="{{ url_for('change_settings') }}">
+                            <i class="fas fa-sliders-h"></i>
+                            Settings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
     </div>
-  </div>
 </nav>
 {% endblock %}

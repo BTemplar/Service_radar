@@ -2,73 +2,173 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login|Service Status</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Service Locator - Login to access your account">
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/favicon.png">
+    <title>Login | Service Locator</title>
+
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    {{ bootstrap.load_css() }}
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
+        :root {
+            --primary-color: #1f5229;
+            --secondary-color: #2ecc71;
+        }
+
         .auth-wrapper {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            background-color: #000000;
-            background-image: url('/static/images/service_radar.png');
-            background-size: cover;
-            background-position: center;
+            min-height: 100vh;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
+                        url('/static/images/service_radar.png') center/cover fixed;
         }
+
+        .auth-card {
+            width: 100%;
+            max-width: 400px;
+            border: none;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            transition: transform 0.3s ease;
+        }
+
+        .auth-card:hover {
+            transform: translateY(-5px);
+        }
+
         .card-body {
+            background: #e3f2fd;
+            border-radius: 12px;
+            padding: 2rem;
+        }
+
+        .form-control {
             border-radius: 8px;
-            background-color: #1f5229;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(31, 82, 41, 0.25);
+        }
+
+        .btn-success {
+            background-color: var(--primary-color);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-success:hover {
+            background-color: #164320;
+            transform: translateY(-2px);
+        }
+
+        .login-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .form-check-label {
+            color: #555;
+            user-select: none;
+        }
+
+        .alert {
+            border-radius: 8px;
+            padding: 12px 20px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #666;
         }
     </style>
 </head>
 <body>
 <div class="auth-wrapper">
-    <div class="auth-content">
-        <div class="card">
-            <div class="row align-items-center text-center">
-                <div class="col-md-12">
-                    <div class="card-body">
-                        <h1 class="text-center">Login</h1>
-                        {% with messages = get_flashed_messages() %}
-                            {% if messages %}
-                                <div class="alert alert-danger" role="alert">
-                                    {% for message in messages %}
-                                        {{ message }}<br>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        {% endwith %}
-                        <form method="POST" action="{{ url_for('login') }}" class="align-items-center login-form">
-                            {{ form.hidden_tag() }}
-                            <div class="input-group mb-3">
-                                {{ form.username(type="username", class="form-control", placeholder="Username") }}
+    <div class="container">
+        <div class="auth-card mx-auto">
+            <div class="card-body">
+                <h1 class="login-title text-center mb-4">🔒 Login</h1>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
-                            <div lass="input-group mb-4">
-                                {{ form.password(type="password", class="form-control", placeholder="Password") }}
-                            </div>
-                            <div class="form-group form-check">
-                                {{ form.remember_me(class="form-check-input", type="checkbox", value="", id="flexCheckChecked") }}
-                                {{ form.remember_me.label(class="form-check-label") }}
-                            </div>
-                            <button type="submit" class="btn btn-success">Login</button>
-                        </form>
-                        <p class="mt-3 text-center">
-                            Don't have an account? <a href="{{ url_for('register') }}" class="link-secondary"><br>Register here</a>
-                        </p>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="{{ url_for('login') }}" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3 position-relative">
+                        {{ form.username(class="form-control", placeholder="Username") }}
+                        <i class="fas fa-user position-absolute top-50 end-0 translate-middle-y me-3"></i>
                     </div>
-                </div>
+
+                    <div class="mb-4 position-relative">
+                        {{ form.password(class="form-control", placeholder="Password", id="password") }}
+                        <i class="fas fa-lock position-absolute top-50 end-0 translate-middle-y me-3"></i>
+                        <i class="fas fa-eye password-toggle" onclick="togglePassword()"></i>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        {{ form.remember_me(class="form-check-input") }}
+                        {{ form.remember_me.label(class="form-check-label") }}
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-success fw-bold">
+                            Sign In <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+
+                    <div class="text-center">
+                        <p class="text-muted mb-0">Don't have an account?</p>
+                        <a href="{{ url_for('register') }}" class="text-decoration-none text-success fw-bold">
+                            Create Account
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- jQuery library -->
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-<!-- Popper JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-<!-- Bootstrap JS -->
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<!-- Bootstrap JS + Popper.js -->
+{{ bootstrap.load_js() }}
+
+<script>
+    function togglePassword() {
+        const passwordField = document.getElementById('password');
+        const icon = document.querySelector('.fa-eye');
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            icon.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+            passwordField.type = 'password';
+            icon.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+    }
+</script>
 
 </body>
 </html>
