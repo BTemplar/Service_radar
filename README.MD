@@ -21,8 +21,8 @@ A project for monitoring the availability of services with a web interface, noti
 ## Installation
 1. **Clone a repository**:
    ```bash
-   git clone https://github.com/BTemplar/Service_Locator.git
-   cd Service_Locator
+   git clone https://github.com/BTemplar/Service_radar.git
+   cd Service_radar
 2. **Installing Libraries**:
    ```bash
    pip install -r requirements.txt
@@ -43,6 +43,9 @@ A project for monitoring the availability of services with a web interface, noti
 
    [Schedule]
    interval = 300  
+   
+   [Secret key] 
+   key = 'dtDN8fjd77DFH9879jkHgfDghj45Hhj'
 ## Launch  
 ```bash  
 flask run --host=0.0.0.0  

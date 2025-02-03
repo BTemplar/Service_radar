@@ -4,7 +4,7 @@
 <div class="container-fluid py-4">
     <div class="dashboard-header mb-5">
         <h1 class="display-5 fw-bold text-primary">
-            <i class="fas fa-heartbeat me-3"></i>Service Health Dashboard
+            <i class="fas fa-heartbeat me-3"></i>Service Dashboard
         </h1>
         <div class="status-summary d-flex gap-3 mt-3">
             <div class="badge bg-success rounded-pill p-3">
@@ -73,7 +73,7 @@
                                 <div class="progress-wrapper">
                                     <div class="d-flex justify-content-between small mb-1">
                                         <span>SLA: {{ sla_results.get(service.service_url, 0) }}%</span>
-                                        <span>{{ average_response_time_per_service.get(service.service_url, None)|float|round(2) }} ms</span>
+                                        <span>Average response time: {{ average_response_time_per_service.get(service.service_url, None)|float|round(2) }} ms</span>
                                     </div>
                                     <div class="progress" style="height: 8px;">
                                         <div class="progress-bar bg-primary"

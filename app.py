@@ -30,8 +30,9 @@ from location import get_location
 from urllib.parse import urlparse
 import configparser
 import os
+
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///services.db'
 init_db(app)
 bootstrap = Bootstrap5(app)
@@ -46,6 +47,9 @@ config['SMTP'] = {
 config['Schedule'] = {
     'interval': '300' # Set the interval in seconds to request updated data
 }
+config['Secret key'] = {
+    'key': 'your_secret_key'
+}
 config_path = 'conf/config.ini'
 os.makedirs(os.path.dirname(config_path), exist_ok=True)
 
@@ -57,7 +61,10 @@ else:
     config.read('conf/config.ini')
     print("The configuration file was successfully read")
 
+app.config['SECRET_KEY'] = config['Secret key']['key']
 schedule_interval = int(config['Schedule']['interval'])
+DEFAULT_ERROR_RESPONSE_TIME = 9999.99
+ERROR_TTL = 300
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -100,12 +107,13 @@ def check_services():
 
             except Exception as e:
                 status = 'offline'
-                response_time = 9999.99
-                # user_email = User.query.filter_by(id=user_id).with_entities(User.email).one()
-                # monitor_services(user_email, service_name, service_url)
+                response_time = DEFAULT_ERROR_RESPONSE_TIME
+                app.logger.error(f"The waiting time for a response from the {host} has exceeded. {e}")
 
             try:
                 location_info = get_location(host)
+                if "error" in location_info and (time.time() - location_info["timestamp"]) > ERROR_TTL:
+                    get_location.cache_clear()  # Reset cache for this host
             except Exception as e:
                 location_info = {
                     "query": host,
@@ -115,6 +123,7 @@ def check_services():
                     "isp": "N/A",
                     "timezone": "N/A"
                 }
+                app.logger.error(f"Geolocation request failed. {e}")
 
             service_status = ServiceStatus(
                 service_name=service_name,
@@ -155,12 +164,14 @@ def check_user_services():
 
         except Exception as e:
             status = 'offline'
-            response_time = 9999.99
-            app.logger.error(f"URL parsing failed: {e}")
+            response_time = DEFAULT_ERROR_RESPONSE_TIME
+            app.logger.error(f"The waiting time for a response from the {host} has exceeded. {e}")
 
-        # Получение геолокации с обработкой ошибок
+        # Getting geolocation with error handling
         try:
             location_info = get_location(host)
+            if "error" in location_info and (time.time() - location_info["timestamp"]) > ERROR_TTL:
+                get_location.cache_clear(host)  # Reset cache for this host
         except Exception as e:
             location_info = {
                 "query": host,
@@ -170,6 +181,7 @@ def check_user_services():
                 "isp": "N/A",
                 "timezone": "N/A"
             }
+            app.logger.error(f"Geolocation request failed. {e}")
 
         results.append({
             "service_name": service_name,
@@ -224,9 +236,15 @@ def monitor_services():
             last_status, current_status = get_last_status(service_url)
             if last_status != current_status and last_status is not None:
                 if current_status == 'offline':
-                    send_email(f"Service {service_name} is now offline", f"The service {service_url} has gone offline at {time.strftime('%Y-%m-%d %H:%M:%S')}", user_email)
+                    try:
+                        send_email(f"Service {service_name} is now offline", f"The service {service_url} has gone offline at {time.strftime('%Y-%m-%d %H:%M:%S')}", user_email)
+                    except Exception as e:
+                        app.logger.error(f"Failed to send email: {e}")
                 else:
-                    send_email(f"Service {service_name} is now online", f"The service {service_url} is now online at {time.strftime('%Y-%m-%d %H:%M:%S')}", user_email)
+                    try:
+                        send_email(f"Service {service_name} is now online", f"The service {service_url} is now online at {time.strftime('%Y-%m-%d %H:%M:%S')}", user_email)
+                    except Exception as e:
+                        app.logger.error(f"Failed to send email: {e}")
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -303,8 +321,8 @@ def index():
                                         (ServiceStatus.service_url == subquery.c.service_url) &
                                         (ServiceStatus.timestamp == subquery.c.max_timestamp))
 
-    services_sla = ServiceStatus.query.filter_by(user_id=current_user.id).all()
-
+    services_sla = ServiceStatus.query.filter(ServiceStatus.user_id == current_user.id,
+                                              ServiceStatus.response_time != DEFAULT_ERROR_RESPONSE_TIME).all()
     total_responses_per_service = {s.service_url: len([ss for ss in services_sla if ss.service_url == s.service_url])
                                    for s in services}
 
@@ -425,4 +443,4 @@ def sla():
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)

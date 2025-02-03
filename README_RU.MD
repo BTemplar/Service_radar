@@ -21,8 +21,8 @@
 ## Установка
 1. **Клонировать репозиторий**:
    ```bash
-   git clone https://github.com/BTemplar/Service_Locator.git
-   cd Service_Locator
+   git clone https://github.com/BTemplar/Service_radar.git
+   cd Service_radar
 2. **Клонировать репозиторий**:
    ```bash
    pip install -r requirements.txt
@@ -43,6 +43,9 @@
 
    [Schedule]
    interval = 300  
+      
+   [Secret key] 
+   key = 'dtDN8fjd77DFH9879jkHgfDghj45Hhj'
 ## Запуск  
 ```bash  
 flask run --host=0.0.0.0  
