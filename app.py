@@ -324,8 +324,7 @@ def index():
                                         (ServiceStatus.service_url == subquery.c.service_url) &
                                         (ServiceStatus.timestamp == subquery.c.max_timestamp))
 
-    services_sla = ServiceStatus.query.filter(ServiceStatus.user_id == current_user.id,
-                                              ServiceStatus.response_time != DEFAULT_ERROR_RESPONSE_TIME).all()
+    services_sla = ServiceStatus.query.filter(ServiceStatus.user_id == current_user.id).all()
     total_responses_per_service = {s.service_url: len([ss for ss in services_sla if ss.service_url == s.service_url])
                                    for s in services}
 
@@ -337,8 +336,10 @@ def index():
                    for total_responses in [total_responses_per_service[service_url]]}
 
     average_response_time_per_service = {s.service_url: sum(ss.response_time for ss in services_sla if
-                                                            ss.service_url == s.service_url and ss.response_time is not None) / len(
-        [ss for ss in services_sla if ss.service_url == s.service_url and ss.response_time is not None])
+                                         ss.service_url == s.service_url and ss.response_time is not None
+                                         and ss.response_time < DEFAULT_ERROR_RESPONSE_TIME) / len(
+        [ss for ss in services_sla if ss.service_url == s.service_url and ss.response_time is not None
+         and ss.response_time < DEFAULT_ERROR_RESPONSE_TIME])
     if any(ss.response_time is not None for ss in services_sla if ss.service_url == s.service_url) else None
                                          for s in services}
 
