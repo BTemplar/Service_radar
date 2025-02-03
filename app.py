@@ -74,7 +74,8 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-def check_port(host, port):
+def check_port(host: str, port: int) -> bool:
+    port = int(port)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(5)  # timeout in seconds
     try:
@@ -98,6 +99,8 @@ def check_services():
 
                 if parsed.port:
                     host, port = parsed.hostname, parsed.port
+                elif parsed.scheme != 'https' and parsed.scheme != 'http':
+                    host, port = parsed.scheme, parsed.path
                 else:
                     host, port = parsed.hostname, 80 if parsed.scheme == "http" else 443
 
