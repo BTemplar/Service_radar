@@ -1,55 +1,145 @@
 {% extends "base.html" %}
+{% block title %}Settings{% endblock %}
 
-{% block title %}Settings|Service Status{% endblock %}
 {% block content %}
-    <div class="container mt-5">
-        <h2 style="color: #a7ded6">Change Settings</h2>
-
-        <!-- Display current values -->
-        <div class="card">
-            <div class="card-body bg-success">
-                <p><strong>Username:</strong> {{ current_user.username }}</p>
-                <p><strong>Email:</strong> {{ current_user.email }}</p>
-                <p><strong>Polling Interval:</strong> {{ schedule_interval }} seconds</p>
-            </div>
+<div class="container-fluid py-4">
+    <div class="card shadow-lg border-0 mx-auto" style="max-width: 800px;">
+        <div class="card-header bg-transparent py-3">
+            <h2 class="mb-0">
+                <i class="fas fa-cog me-2"></i>Account Settings
+            </h2>
         </div>
 
-        <form id="settingsForm" method="POST">
-        <div class="card">
-            <div class="card-body bg-success">
-                <div class="mb-3">
-                    <label for="new_password" class="form-label">New Password:</label>
-                    <input type="password" class="form-control" id="new_password" name="new_password">
-                </div>
-                <div class="mb-3">
-                    <label for="email" class="form-label">New Email:</label>
-                    <input type="email" class="form-control" id="email" name="email">
+        <div class="card-body">
+            <!-- Current Settings -->
+            <div class="current-settings mb-5">
+                <h4 class="text-muted mb-4">
+                    <i class="fas fa-info-circle me-2"></i>Current Information
+                </h4>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="info-card bg-light p-3 rounded-3 mb-3">
+                            <small class="text-muted">Username</small>
+                            <div class="h5">{{ current_user.username }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-card bg-light p-3 rounded-3 mb-3">
+                            <small class="text-muted">Email</small>
+                            <div class="h5">{{ current_user.email }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-card bg-light p-3 rounded-3 mb-3">
+                            <small class="text-muted">Polling Interval</small>
+                            <div class="h5">{{ schedule_interval }} seconds</div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- Update Form -->
+            <form method="POST" id="settingsForm">
+                <h4 class="text-muted mb-4">
+                    <i class="fas fa-edit me-2"></i>Update Settings
+                </h4>
+
+                <div class="mb-4 position-relative">
+                    <label class="form-label text-muted small mb-1">
+                        <i class="fas fa-lock me-1"></i>New Password
+                    </label>
+                    <div class="input-group">
+                        <input type="password" class="form-control ps-4"
+                               id="new_password" name="new_password"
+                               placeholder="Enter new password">
+                        <i class="fas fa-key input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="mb-4 position-relative">
+                    <label class="form-label text-muted small mb-1">
+                        <i class="fas fa-envelope me-1"></i>New Email
+                    </label>
+                    <div class="input-group">
+                        <input type="email" class="form-control ps-4"
+                               id="email" name="email"
+                               placeholder="new.email@example.com">
+                        <i class="fas fa-at input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-5">
+{#                    <a href="{{ url_for('index') }}"#}
+{#                       class="btn btn-outline-secondary">#}
+{#                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard#}
+{#                    </a>#}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
+            </form>
         </div>
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-        </form>
-
-        <script>$(document).ready(function() {
-                $('#settingsForm').on('submit', function(event) {
-                    event.preventDefault();
-
-                    var formData = $(this).serialize();
-
-                    $.ajax({
-                        url: '/change_settings',
-                        type: 'POST',
-                        data: formData,
-                        success: function(response) {
-                            alert('Settings updated successfully!');
-                            location.reload();
-                        },
-                        error: function(xhr, status, error) {
-                            alert('Error updating settings: ' + xhr.responseText);
-                        }
-                    });
-                });
-            });
-        </script>
     </div>
+</div>
+
+<style>
+    .info-card {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .info-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--primary-color);
+        z-index: 3;
+    }
+
+    .form-control {
+        padding-left: 40px !important;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(31, 82, 41, 0.25);
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        $('#settingsForm').on('submit', function(e) {
+            e.preventDefault();
+
+            $.ajax({
+                url: '/change_settings',
+                method: 'POST',
+                data: $(this).serialize(),
+                success: function(response) {
+                    const alert = `<div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle me-2"></i>Settings updated successfully!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>`;
+                    $('.card-body').prepend(alert);
+                    setTimeout(() => location.reload(), 1500);
+                },
+                error: function(xhr) {
+                    const errorMsg = xhr.responseJSON?.error || 'Error updating settings';
+                    const alert = `<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i>${errorMsg}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>`;
+                    $('.card-body').prepend(alert);
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}
