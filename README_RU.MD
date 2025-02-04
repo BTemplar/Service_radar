@@ -45,7 +45,7 @@
    interval = 300  
       
    [Secret key] 
-   key = 'dtDN8fjd77DFH9879jkHgfDghj45Hhj'
+   key = 'your-secret-key'
 ## Запуск  
 ```bash  
 flask run --host=0.0.0.0  
