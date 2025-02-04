@@ -26,12 +26,8 @@ A project for monitoring the availability of services with a web interface, noti
 2. **Installing Libraries**:
    ```bash
    pip install -r requirements.txt
-3. **Initialize the database (automatically generated at the first startup)**:
-   ```bash
-   flask shell
-   from database import init_db
-   init_db()
-   exit()
+3. **Initialize the database (automatically generated at the first startup)**
+
 4. **Configure the configuration**:  
    Create a conf/config.ini file (automatically generated at the first start) and specify:
    ```ini
@@ -45,7 +41,7 @@ A project for monitoring the availability of services with a web interface, noti
    interval = 300  
    
    [Secret key] 
-   key = 'dtDN8fjd77DFH9879jkHgfDghj45Hhj'
+   key = 'your-secret-key'
 ## Launch  
 ```bash  
 flask run --host=0.0.0.0  

@@ -8,6 +8,15 @@ RATE_LIMIT_DELAY = 1.5
 
 @lru_cache(maxsize=100)
 def get_location(ip: str) -> dict:
+    """
+    Get geolocation information for a given IP address.
+
+    Args:
+        ip (str): The IP address or hostname to get geolocation information for.
+
+    Returns:
+        dict: A dictionary containing the geolocation information for the given IP address or host.
+    """
     time.sleep(RATE_LIMIT_DELAY)
 
     try:
