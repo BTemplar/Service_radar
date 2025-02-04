@@ -45,7 +45,7 @@ A project for monitoring the availability of services with a web interface, noti
    interval = 300  
    
    [Secret key] 
-   key = 'dtDN8fjd77DFH9879jkHgfDghj45Hhj'
+   key = 'your-secret-key'
 ## Launch  
 ```bash  
 flask run --host=0.0.0.0  
