@@ -186,6 +186,8 @@ def check_user_services() ->  list[dict[str, str | None]]:
 
             if parsed.port:
                 host, port = parsed.hostname, parsed.port
+            elif parsed.scheme != 'https' and parsed.scheme != 'http':
+                host, port = parsed.scheme, parsed.path
             else:
                 host, port = parsed.hostname, 80 if parsed.scheme == "http" else 443
 

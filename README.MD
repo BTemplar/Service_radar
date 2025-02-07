@@ -1,4 +1,4 @@
-# Service Locator 🖥️🔍
+# Service Radar 🖥️🔍
 
 A project for monitoring the availability of services with a web interface, notifications, and SLA analytics.
 
