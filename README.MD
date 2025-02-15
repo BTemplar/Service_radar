@@ -62,7 +62,7 @@ The application will be available at: http://localhost:5000.
 4. Notifications:
 
     * When the service status changes, an email is sent.
-## Технологии  
+## Technologies  
 * **Backend**: Flask, SQLAlchemy, APScheduler
 * **Frontend**: Bootstrap 5, Jinja2
 * **Additionally**: SMTP, IP geolocation (via an external `API')
