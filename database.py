@@ -19,6 +19,7 @@ class ServiceStatus(db.Model):
     last_status_change = db.Column(db.DateTime)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    status_code = db.Column(db.Integer, nullable=False)
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)

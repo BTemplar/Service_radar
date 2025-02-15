@@ -19,6 +19,7 @@ from flask_login import login_required, logout_user
 from flask_bootstrap import Bootstrap5
 from sqlalchemy import func
 import socket
+import requests
 import time
 import smtplib
 from email.mime.text import MIMEText
@@ -74,28 +75,70 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-def check_port(host: str, port: int) -> bool:
-    """
-    Check if a specific port is open on a given host.
+class CheckServer:
+    def __init__(self, host: str, port: int):
+        self.host = host
+        self.port = port
 
-    Args:
-        host (str): The host to check.
-        port (int): The port to check.
+    def get_port_status(self) -> (str, int):
+        """
+        Check if a specific port is open on a given host.
 
-    Returns:
-        bool: True if the port is open, False otherwise.
-    """
-    port = int(port)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(5)  # timeout in seconds
-    try:
-        result = sock.connect_ex((host, port))
-        return result == 0
-    except socket.error as e:
-        print(f"Error: {e}")
-        return False
-    finally:
-        sock.close()
+        Args:
+            host (str): The host to check.
+            port (int): The port to check.
+
+        Returns:
+            bool: True if the port is open, False otherwise.
+        """
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(5)  # timeout in seconds
+        status = None
+        try:
+            start_time = time.time()
+            result = sock.connect_ex((self.host, self.port))
+            response_time = (time.time() - start_time) * 1000
+            if result == 0:
+                status = 'online'
+            return status, response_time
+        except socket.error as e:
+            print(f"Error: {e}")
+            response_time = DEFAULT_ERROR_RESPONSE_TIME
+            return 'offline', response_time
+        finally:
+            sock.close()
+
+    def get_web_code(self) -> (str, int, int):
+        """
+        Check the status of a web server.
+
+        Args:
+            url (str): The URL of the web server to check.
+
+        Returns:
+            int: The status code of the web page.
+        """
+        status = None
+        try:
+            if self.port == 443:
+                start_time = time.time()
+                response = requests.get('https://' + self.host, timeout=5)
+                response_time = (time.time() - start_time) * 1000
+                if response.status_code == 200:
+                    status = 'online'
+                return status, response_time, response.status_code
+            else:
+                start_time = time.time()
+                response = requests.get('http://' + self.host + ':' + str(self.port), timeout=5)
+                response_time = (time.time() - start_time) * 1000
+                if response.status_code == 200:
+                    status = 'online'
+                return status, response_time, response.status_code
+        except Exception as e:
+            print(f"The waiting time for a response from the {self.host} has exceeded. - Error: {e}")
+            status = 'offline'
+            response_time = DEFAULT_ERROR_RESPONSE_TIME
+            return status, response_time, 500
 
 def check_services() -> None:
     """
@@ -118,14 +161,16 @@ def check_services() -> None:
 
                 if parsed.port:
                     host, port = parsed.hostname, parsed.port
+                    checking_server = CheckServer(host, port)
+                    status, response_time = checking_server.get_port_status()
                 elif parsed.scheme != 'https' and parsed.scheme != 'http':
                     host, port = parsed.scheme, parsed.path
+                    checking_server = CheckServer(host, int(port))
+                    status, response_time = checking_server.get_port_status()
                 else:
                     host, port = parsed.hostname, 80 if parsed.scheme == "http" else 443
-
-                start_time = time.time()
-                status = 'online' if check_port(host, port) else 'offline'
-                response_time = (time.time() - start_time) * 1000
+                    checking_server = CheckServer(host, port)
+                    status, response_time, status_code = checking_server.get_web_code()
 
             except Exception as e:
                 status = 'offline'
@@ -157,7 +202,8 @@ def check_services() -> None:
                 status=status,
                 response_time=response_time,
                 user_id=user_id,
-                service_id=service_id
+                service_id=service_id,
+                status_code=status_code
             )
             db.session.add(service_status)
         db.session.commit()
@@ -181,19 +227,22 @@ def check_user_services() ->  list[dict[str, str | None]]:
         service_name, service_url, service_id = service
         try:
             parsed = urlparse(str(service_url))
+            print(parsed.path)
             if not parsed.scheme:
                 parsed = urlparse(f"http://{service_url}")
 
             if parsed.port:
                 host, port = parsed.hostname, parsed.port
+                checking_server = CheckServer(host, port)
+                status, response_time = checking_server.get_port_status()
             elif parsed.scheme != 'https' and parsed.scheme != 'http':
-                host, port = parsed.scheme, parsed.path
+                host, port = parsed.scheme, int(parsed.path)
+                checking_server = CheckServer(host, port)
+                status, response_time = checking_server.get_port_status()
             else:
                 host, port = parsed.hostname, 80 if parsed.scheme == "http" else 443
-
-            start_time = time.time()
-            status = 'online' if check_port(host, port) else 'offline'
-            response_time = (time.time() - start_time) * 1000
+                checking_server = CheckServer(host, port)
+                status, response_time, status_code = checking_server.get_web_code()
 
         except Exception as e:
             status = 'offline'
@@ -223,7 +272,8 @@ def check_user_services() ->  list[dict[str, str | None]]:
             "response_time": f"{response_time:.2f} ms",
             "service_location": f"{location_info.get('countryCode', 'N/A')} {location_info.get('region', 'N/A')} {location_info.get('city', 'N/A')}",
             "service_isp": location_info.get('isp', 'N/A'),
-            "service_timezone": location_info.get('timezone', 'N/A')
+            "service_timezone": location_info.get('timezone', 'N/A'),
+            "status_code": status_code
         })
         service_status = ServiceStatus(
             service_name=service_name,
@@ -235,7 +285,8 @@ def check_user_services() ->  list[dict[str, str | None]]:
             status=status,
             response_time=response_time,
             user_id=current_user.id,
-            service_id=service_id
+            service_id=service_id,
+            status_code=status_code
         )
         db.session.add(service_status)
         db.session.commit()

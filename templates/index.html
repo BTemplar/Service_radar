@@ -47,7 +47,6 @@
                             <th>Status</th>
                             <th>Performance</th>
                             <th>Location</th>
-{#                            <th class="text-end pe-4">Actions</th>#}
                         </tr>
                     </thead>
                     <tbody>
@@ -65,15 +64,25 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="badge {% if service.status == 'online' %}bg-success{% else %}bg-danger{% endif %} rounded-pill">
-                                    {{ service.status|title }}
-                                </span>
+                                {% if "http" in service.service_url %}
+                                    <span class="badge {% if service.status == 'online' %}bg-success{% else %}bg-danger{% endif %} rounded-pill">
+                                        {{ service.status|title }}<br>{{ service.status_code}}
+                                    </span>
+                                {% else %}
+                                    <span class="badge {% if service.status == 'online' %}bg-success{% else %}bg-danger{% endif %} rounded-pill">
+                                        {{ service.status|title }}
+                                    </span>
+                                {% endif %}
                             </td>
                             <td>
                                 <div class="progress-wrapper">
                                     <div class="d-flex justify-content-between small mb-1">
                                         <span>SLA: {{ sla_results.get(service.service_url, 0) }}%</span>
-                                        <span>Average response time: {{ average_response_time_per_service.get(service.service_url, None)|float|round(2) }} ms</span>
+                                        {% if "http" in service.service_url %}
+                                            <span>Average response time: {{ average_response_time_per_service.get(service.service_url, None)|float|round(2) }} ms</span>
+                                        {% else %}
+                                            <span>Average ping time: {{ average_response_time_per_service.get(service.service_url, None)|float|round(2) }} ms</span>
+                                        {% endif %}
                                     </div>
                                     <div class="progress" style="height: 8px;">
                                         <div class="progress-bar bg-primary"
