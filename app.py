@@ -77,19 +77,25 @@ def load_user(user_id):
 
 class CheckServer:
     def __init__(self, host: str, port: int):
+        """
+        Initialize a new instance of the CheckServer class.
+
+        Args:
+            host (str): The host to check.
+            port (int): The port to check.
+        """
         self.host = host
         self.port = port
 
     def get_port_status(self) -> (str, int):
         """
-        Check if a specific port is open on a given host.
+        Get the status and response time of a port.
 
-        Args:
-            host (str): The host to check.
-            port (int): The port to check.
+        This function checks the status of a port by attempting to connect to it.
+        It also retrieves the response time of the port.
 
         Returns:
-            bool: True if the port is open, False otherwise.
+            tuple: A tuple containing the status and response time of the port.
         """
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(5)  # timeout in seconds
@@ -110,13 +116,13 @@ class CheckServer:
 
     def get_web_code(self) -> (str, int, int):
         """
-        Check the status of a web server.
+        Get the status, response time, and status code of a web page.
 
-        Args:
-            url (str): The URL of the web server to check.
+        This function checks the status of a web page by attempting to connect to its URL.
+        It also retrieves the response time and status code of the web page.
 
         Returns:
-            int: The status code of the web page.
+            tuple: A tuple containing the status, response time, and status code of the web page.
         """
         status = None
         try:
@@ -385,21 +391,33 @@ def register():
 @login_required
 def change_settings():
     if request.method == 'POST':
-        password = request.form.get('password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
         email = request.form.get('email')
+        confirm = False
 
         user_id = current_user.id
         user = User.query.get(user_id)
 
         if user:
-            if password:
-                user.set_password(password)
+            if confirm_password:
+                if new_password == confirm_password:
+                    confirm = True
+                    user.set_password(new_password)
+                else:
+                    flash('Passwords do not match, please try again', 'danger')
             if email:
                 user.email = email
 
-            db.session.commit()
-            flash('You have successfully change settings')
-            return redirect(url_for('change_settings'))
+            try:
+                if email or confirm:
+                    db.session.commit()
+                    flash('You have successfully changed settings', 'success')
+                return redirect(url_for('change_settings'))
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error updating settings: {str(e)}', 'danger')
+                return redirect(url_for('change_settings'))
 
     return render_template('change_settings.html', schedule_interval=schedule_interval)
 
