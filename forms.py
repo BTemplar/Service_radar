@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from database import User
-from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField, validators
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 
 class RegistrationForm(FlaskForm):
@@ -40,3 +40,31 @@ class EditServiceForm(FlaskForm):
 
     def __init__(self, *args, **kwargs):
         super(EditServiceForm, self).__init__(*args, **kwargs)
+
+class ChangePasswordForm(FlaskForm):
+    change_password = BooleanField('Change Password')
+    new_password = PasswordField(
+        'New Password',
+        validators=[
+            Length(min=8, message="Password must be at least 8 characters"),
+            validators.Regexp(r'(?=.*[0-9])', message="Password must contain at least one digit."),
+            validators.Regexp(r'(?=.*[A-Z])', message="Password must contain at least one uppercase letter."),
+            validators.Regexp(r'(?=.*[a-z])', message="Password must contain at least one lowercase letter.")
+        ]
+    )
+    confirm_password = PasswordField(
+        'Confirm Password',
+        validators=[
+            EqualTo('new_password', message='Passwords do not match')
+        ]
+    )
+
+
+class ChangeEmailForm(FlaskForm):
+    change_email = BooleanField('Change Email')
+    email = StringField(
+        'New Email',
+        validators=[
+            Email(message="Invalid email format")
+        ]
+    )

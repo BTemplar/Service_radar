@@ -24,7 +24,7 @@ import time
 import smtplib
 from email.mime.text import MIMEText
 from database import init_db, ServiceStatus, db, User, Service
-from forms import RegistrationForm, LoginForm, AddServiceForm, EditServiceForm
+from forms import RegistrationForm, LoginForm, AddServiceForm, EditServiceForm, ChangePasswordForm, ChangeEmailForm
 from flask_login import login_user, current_user, LoginManager
 from apscheduler.schedulers.background import BackgroundScheduler
 from location import get_location
@@ -387,39 +387,47 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html', form=form)
 
+
 @app.route('/change_settings', methods=['GET', 'POST'])
 @login_required
 def change_settings():
+    pass_form = ChangePasswordForm()
+    email_form = ChangeEmailForm()
+
     if request.method == 'POST':
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
-        email = request.form.get('email')
-        confirm = False
+        if request.form['id'] == "PassForm":
 
-        user_id = current_user.id
-        user = User.query.get(user_id)
+            if pass_form.validate_on_submit():
+                user = User.query.get(current_user.id)
+                if user:
+                    if pass_form.change_password.data and pass_form.new_password.data:
+                        user.set_password(pass_form.new_password.data)
 
-        if user:
-            if confirm_password:
-                if new_password == confirm_password:
-                    confirm = True
-                    user.set_password(new_password)
-                else:
-                    flash('Passwords do not match, please try again', 'danger')
-            if email:
-                user.email = email
-
-            try:
-                if email or confirm:
+                try:
                     db.session.commit()
-                    flash('You have successfully changed settings', 'success')
-                return redirect(url_for('change_settings'))
-            except Exception as e:
-                db.session.rollback()
-                flash(f'Error updating settings: {str(e)}', 'danger')
-                return redirect(url_for('change_settings'))
+                    flash('You have successfully changed password', 'success')
+                    return redirect(url_for('change_settings'))
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f'Error updating settings: {str(e)}', 'danger')
+                    return redirect(url_for('change_settings'))
 
-    return render_template('change_settings.html', schedule_interval=schedule_interval)
+        elif request.form['id'] == "EmailForm":
+            if email_form.change_email.data and email_form.email.data:
+                user = User.query.get(current_user.id)
+                user.email = email_form.email.data
+
+                try:
+                    db.session.commit()
+                    flash('You have successfully changed email address', 'success')
+                    return redirect(url_for('change_settings'))
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f'Error updating settings: {str(e)}', 'danger')
+                    return redirect(url_for('change_settings'))
+
+    return render_template('change_settings.html', pass_form= pass_form, email_form=email_form,
+                           schedule_interval=schedule_interval)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

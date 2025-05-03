@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <div class="card shadow-lg border-0 mx-auto" style="max-width: 800px;">
+    <div class="card shadow-lg border-0 mx-auto">
         <div class="card-header bg-transparent py-3">
             <h2 class="mb-0">
                 <i class="fas fa-cog me-2"></i>Account Settings
@@ -39,51 +39,77 @@
             </div>
 
             <!-- Update Form -->
-            <form method="POST" id="settingsForm">
+            <form method="POST" id="PassForm">
+                {{ pass_form.hidden_tag() }}
+                <input type="hidden" name="id" value="PassForm">
                 <h4 class="text-muted mb-4">
                     <i class="fas fa-edit me-2"></i>Update Settings
                 </h4>
 
                 <div class="mb-4 position-relative">
-                    <label class="form-label text-muted small mb-1">
-                        <i class="fas fa-lock me-1"></i>New Password
-                    </label>
-                    <div class="input-group">
-                        <input type="password" class="form-control ps-4"
-                               id="new_password" name="new_password"
-                               placeholder="Enter new password">
-                        <i class="fas fa-key input-icon"></i>
-                    </div>
+                    {{ pass_form.change_password.label(class_='form-label text-muted small mb-1') }}
+                    {{ pass_form.change_password(class_='form-check-input') }}
                 </div>
 
-                <div class="mb-4 position-relative">
-                    <label class="form-label text-muted small mb-1">
-                        <i class="fas fa-lock me-1"></i>Confirm Password
-                    </label>
+                <div class="mb-4 position-relative" id="password-section">
+                    {{ pass_form.new_password.label(class_='form-label text-muted small mb-1') }}
                     <div class="input-group">
-                        <input type="password" class="form-control ps-4"
-                               id="confirm_password" name="confirm_password"
-                               placeholder="Confirm new password">
+                        {{ pass_form.new_password(class_='form-control ps-4') }}
                         <i class="fas fa-key input-icon"></i>
                     </div>
+                    {% if pass_form.new_password.errors %}
+                        <div class="text-danger">
+                            {% for error in pass_form.new_password.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    {{ pass_form.confirm_password.label(class_='form-label text-muted small mb-1') }}
+                    <div class="input-group">
+                        {{ pass_form.confirm_password(class_='form-control ps-4') }}
+                        <i class="fas fa-key input-icon"></i>
+                    </div>
+                    {% if pass_form.confirm_password.errors %}
+                        <div class="text-danger">
+                            {% for error in pass_form.confirm_password.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between mt-5">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <form method="POST" id="EmailForm">
+                <input type="hidden" name="id" value="EmailForm">
+                <div class="mb-4 position-relative">
+                    {{ email_form.change_email.label(class_='form-label text-muted small mb-1') }}
+                    {{ email_form.change_email(class_='form-check-input') }}
                 </div>
 
-                <div class="mb-4 position-relative">
-                    <label class="form-label text-muted small mb-1">
-                        <i class="fas fa-envelope me-1"></i>New Email
-                    </label>
+                <div class="mb-4 position-relative" id="email-section">
+                    {{ email_form.email.label(class_='form-label text-muted small mb-1') }}
                     <div class="input-group">
-                        <input type="email" class="form-control ps-4"
-                               id="email" name="email"
-                               placeholder="new.email@example.com">
+                        {{ email_form.email(class_='form-control ps-4') }}
                         <i class="fas fa-at input-icon"></i>
                     </div>
-                </div>
-
-                <div class="d-flex justify-content-between mt-5">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Save Changes
-                    </button>
+                    {% if email_form.email.errors %}
+                        <div class="text-danger">
+                            {% for error in email_form.email.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between mt-5">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Changes
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -145,6 +171,28 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>`;
                     $('.card-body').prepend(alert);
+                }
+            });
+        });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordSection = document.getElementById('password-section');
+        const emailSection = document.getElementById('email-section');
+
+        // Скрываем поля пароля по умолчанию
+        passwordSection.style.display = 'none';
+        emailSection.style.display = 'none';
+
+        // Обновляем отображение при изменении чекбоксов
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (checkbox.id === 'change_password') {
+                    passwordSection.style.display = checkbox.checked ? 'block' : 'none';
+                } else if (checkbox.id === 'change_email') {
+                    emailSection.style.display = checkbox.checked ? 'block' : 'none';
                 }
             });
         });
