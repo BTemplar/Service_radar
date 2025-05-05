@@ -15,6 +15,7 @@
 # Version Information: 1.0
 
 from flask import Flask, jsonify, render_template, redirect, url_for, request, flash, abort
+from datetime import datetime, timedelta
 from flask_login import login_required, logout_user
 from flask_bootstrap import Bootstrap5
 from sqlalchemy import func
@@ -23,7 +24,8 @@ import requests
 import time
 import smtplib
 from email.mime.text import MIMEText
-from database import init_db, ServiceStatus, db, User, Service
+from database import init_db, db
+from models import ServiceStatus, User, Service
 from forms import RegistrationForm, LoginForm, AddServiceForm, EditServiceForm, ChangePasswordForm, ChangeEmailForm
 from flask_login import login_user, current_user, LoginManager
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -46,7 +48,8 @@ config['SMTP'] = {
     'port': '587'
 }
 config['Schedule'] = {
-    'interval': '300' # Set the interval in seconds to request updated data
+    'interval': '300', # Set the interval in seconds to request updated data
+    'retention_period': '30' # Set the retention period in days
 }
 config['Secret key'] = {
     'key': 'your_secret_key'
@@ -64,6 +67,7 @@ else:
 
 app.config['SECRET_KEY'] = config['Secret key']['key']
 schedule_interval = int(config['Schedule']['interval'])
+retention_period = int(config['Schedule']['retention_period'])
 DEFAULT_ERROR_RESPONSE_TIME = 9999.99
 ERROR_TTL = 300
 
@@ -368,10 +372,34 @@ def monitor_services() -> None:
                         send_email(f"Service {service_name} is now online", f"The service {service_url} is now online at {time.strftime('%Y-%m-%d %H:%M:%S')}", user_email)
                     except Exception as e:
                         app.logger.error(f"Failed to send email: {e}")
+        try:
+            cutoff_date = datetime.now() - timedelta(days=retention_period)
+            deleted_count = db.session.query(ServiceStatus).filter(
+                ServiceStatus.timestamp < cutoff_date
+            ).delete(synchronize_session=False)
+
+            db.session.commit()
+            app.logger.info(f"Удалено {deleted_count} записей старше {retention_period} дней")
+
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Ошибка при удалении старых записей: {str(e)}")
+            raise
 
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    """
+    Register a new user.
+
+    This function registers a new user. If the form is valid, it checks if the username already exists in the database.
+    If the username already exists, it displays an error message and redirects the user to the registration page.
+    If the username does not exist, it creates a new user with the data from the form, sets the user's password,
+    and commits the changes to the database. It then redirects the user to the login page.
+
+    Returns:
+        Response: A redirect response to the login page or a rendered HTML template containing the registration page.
+    """
     form = RegistrationForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
@@ -391,6 +419,16 @@ def register():
 @app.route('/change_settings', methods=['GET', 'POST'])
 @login_required
 def change_settings():
+    """
+    Change user settings.
+
+    This function changes the user's password or email address. It first checks if the user is authenticated.
+    If the user is not authenticated, it redirects them to the index page. If the form is valid, it retrieves the user from the database
+    and updates their password or email address. It then commits the changes to the database and redirects the user to the change_settings page.
+
+    Returns:
+        Response: A redirect response to the change_settings page or a rendered HTML template containing the change_settings page.
+    """
     pass_form = ChangePasswordForm()
     email_form = ChangeEmailForm()
 
@@ -431,6 +469,17 @@ def change_settings():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    """
+    Log in a user.
+
+    This function logs in a user. If the user is already authenticated, it redirects them to the index page.
+    If the form is valid, it retrieves the user from the database and checks their password.
+    If the password is correct, it logs the user in and redirects them to the next page or the index page.
+    If the password is incorrect, it displays an error message.
+
+    Returns:
+        Response: A redirect response to the index page or the next page, or a rendered HTML template containing the login page.
+    """
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     form = LoginForm()
@@ -447,6 +496,14 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
+    """
+    Log out the current user.
+
+    This function logs out the current user and redirects them to the index page.
+
+    Returns:
+        Response: A redirect response to the index page.
+    """
     logout_user()
     return redirect(url_for('index'))
 
@@ -454,6 +511,16 @@ def logout():
 @app.route('/', methods=['GET'])
 @login_required
 def index():
+    """
+    Display the index page.
+
+    This function retrieves all services associated with the current user from the database and calculates the total number of responses,
+    the number of online services, the SLA result, and the average response time for each service. It then passes this information to the
+    index.html template.
+
+    Returns:
+        Response: A rendered HTML template containing the index page.
+    """
     subquery = (ServiceStatus.query
                 .with_entities(ServiceStatus.service_url,
                                func.max(ServiceStatus.timestamp).label('max_timestamp'))
@@ -475,6 +542,9 @@ def index():
                    for service_url, online_count in online_count_per_service.items()
                    for total_responses in [total_responses_per_service[service_url]]}
 
+    online_count = sum(1 for s in services if s.status == "online")
+    offline_count = sum(1 for s in services if s.status == "offline")
+
     average_response_time_per_service = {s.service_url: sum(ss.response_time for ss in services_sla if
                                          ss.service_url == s.service_url and ss.response_time is not None
                                          and ss.response_time < DEFAULT_ERROR_RESPONSE_TIME) / len(
@@ -486,11 +556,20 @@ def index():
     return render_template('index.html', services=services,
                            total_responses_per_service=total_responses_per_service,
                            online_count_per_service=online_count_per_service, sla_results=sla_results,
-                           average_response_time_per_service=average_response_time_per_service)
+                           average_response_time_per_service=average_response_time_per_service, online_count=online_count,
+                           offline_count=offline_count)
 
 @app.route('/service_management', methods=['GET'])
 @login_required
 def service_management():
+    """
+    Display the service management page.
+
+    This function retrieves all services associated with the current user from the database and passes them to the service_management.html template.
+
+    Returns:
+        Response: A rendered HTML template containing the service management page.
+    """
     services_user = Service.query.filter_by(user_id=current_user.id).with_entities(Service.id,
                                                                                    Service.service_name,
                                                                                    Service.service_url,
@@ -501,6 +580,17 @@ def service_management():
 @app.route('/add_service', methods=['GET', 'POST'])
 @login_required
 def add_service():
+    """
+    Add a new service.
+
+    This function adds a new service to the database. It first checks if the current user has reached the maximum number of services allowed.
+    If the user has reached the maximum number of services, it returns a redirect response to the service management page.
+    If the form is valid, it creates a new service with the data from the form and commits the changes to the database.
+    It then calls the check_services_route function and returns a redirect response to the service management page.
+
+    Returns:
+        Response: A redirect response to the service management page.
+    """
     form = AddServiceForm()
 
     existing_services_count = Service.query.filter_by(user_id=current_user.id).count()
@@ -525,6 +615,19 @@ def add_service():
 @app.route('/edit_service/<int:service_id>', methods=['GET', 'POST'])
 @login_required
 def edit_service(service_id):
+    """
+    Edit a service.
+
+    This function edits a service in the database. It first retrieves the service from the database using the provided service_id.
+    If the service does not exist, it returns a 404 error. If the current user is not the owner of the service, it returns a 403 error.
+    It then updates the service with the data from the form and commits the changes.
+
+    Args:
+        service_id (int): The ID of the service to edit.
+
+    Returns:
+        Response: A redirect response to the service management page.
+    """
     service = Service.query.get_or_404(service_id)
     form = EditServiceForm(obj=service)
     if form.validate_on_submit():
@@ -543,6 +646,19 @@ def edit_service(service_id):
 @app.route('/delete_service/<int:service_id>', methods=['POST'])
 @login_required
 def delete_service(service_id):
+    """
+    Delete a service.
+
+    This function deletes a service from the database. It first retrieves the service from the database using the provided service_id.
+    If the service does not exist, it returns a 404 error. If the current user is not the owner of the service, it returns a 403 error.
+    It then deletes the service and its associated service statuses from the database and commits the changes.
+
+    Args:
+        service_id (int): The ID of the service to delete.
+
+    Returns:
+        Response: A redirect response to the service management page.
+    """
     service = Service.query.get_or_404(service_id)
     if service.user_id != current_user.id:
         abort(403)  # Forbidden access
@@ -567,6 +683,7 @@ def check_services_route():
     with app.app_context():
         return jsonify(check_user_services())
 
+# Create a scheduler instance
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=check_services, trigger='interval', seconds=schedule_interval)
 scheduler.start()
@@ -574,6 +691,16 @@ scheduler.start()
 @app.route('/sla', methods=['GET'])
 @login_required
 def sla():
+    """
+    Get the Service Level Agreement (SLA) information.
+
+    This function retrieves all service statuses from the database and calculates the total number of responses,
+    the number of online services, the SLA result, and the average response time.
+
+    Returns:
+        Response: A JSON response containing the total number of responses, the number of online services,
+        the SLA result, and the average response time.
+    """
     services = ServiceStatus.query.all()
     total_responses = len(services)
     online_count = sum(1 for s in services if s.status == 'online')
